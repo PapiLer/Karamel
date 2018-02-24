@@ -80,7 +80,11 @@ obj-$(CONFIG_HUGETLBFS)		+= hugetlbfs/
 obj-$(CONFIG_CODA_FS)		+= coda/
 obj-$(CONFIG_MINIX_FS)		+= minix/
 obj-$(CONFIG_FAT_FS)		+= fat/
+<<<<<<< HEAD
 obj-$(CONFIG_EXFAT_FS)		+= exfat/
+=======
+obj-$(CONFIG_SDFAT_FS)		+= sdfat/
+>>>>>>> 36e703299ee1 (fs: Import sdFAT driver)
 obj-$(CONFIG_BFS_FS)		+= bfs/
 obj-$(CONFIG_ISO9660_FS)	+= isofs/
 obj-$(CONFIG_HFSPLUS_FS)	+= hfsplus/ # Before hfs to find wrapped HFS+

@@ -136,7 +136,11 @@ if BLOCK
 menu "DOS/FAT/EXFAT/NT Filesystems"
 
 source "fs/fat/Kconfig"
+<<<<<<< HEAD
 source "fs/exfat/Kconfig"
+=======
+source "fs/sdfat/Kconfig"
+>>>>>>> 36e703299ee1 (fs: Import sdFAT driver)
 source "fs/ntfs/Kconfig"
 
 endmenu
