@@ -1,6 +1,21 @@
 ifeq (,$(filter y,$(CONFIG_ARCH_MSM8937) $(CONFIG_ARCH_MSM8953)))
 
 # auto-detect subdirs
+<<<<<<< HEAD
+=======
+ifeq ($(CONFIG_ARCH_SDM845), y)
+include $(srctree)/techpack/audio/config/sdm845auto.conf
+export
+endif
+ifeq ($(CONFIG_ARCH_SDM450), y)
+include $(srctree)/techpack/audio/config/sdm450auto.conf
+export
+endif
+ifeq ($(CONFIG_ARCH_SDM670), y)
+include $(srctree)/techpack/audio/config/sdm710auto_static.conf
+export
+endif
+>>>>>>> d205017c21a2 (techpack: Include sdm450 platform config directly)
 ifeq ($(CONFIG_ARCH_SDXPOORWILLS), y)
 include $(srctree)/techpack/audio/config/sdxpoorwillsauto.conf
 export $(shell sed 's/=.*//' $(srctree)/techpack/audio/config/sdxpoorwillsauto.conf)
@@ -41,6 +56,21 @@ LINUXINCLUDE    += \
                 -I$(srctree)/techpack/audio/include/uapi \
                 -I$(srctree)/techpack/audio/include
 
+<<<<<<< HEAD
+=======
+ifeq ($(CONFIG_ARCH_SDM845), y)
+LINUXINCLUDE    += \
+                -include $(srctree)/techpack/audio/config/sdm845autoconf.h
+endif
+ifeq ($(CONFIG_ARCH_SDM450), y)
+LINUXINCLUDE    += \
+                -include $(srctree)/techpack/audio/config/sdm450autoconf.h
+endif
+ifeq ($(CONFIG_ARCH_SDM670), y)
+LINUXINCLUDE    += \
+                -include $(srctree)/techpack/audio/config/sdm710autoconf.h
+endif
+>>>>>>> d205017c21a2 (techpack: Include sdm450 platform config directly)
 ifeq ($(CONFIG_ARCH_SDXPOORWILLS), y)
 LINUXINCLUDE    += \
                 -include $(srctree)/techpack/audio/config/sdxpoorwillsautoconf.h
