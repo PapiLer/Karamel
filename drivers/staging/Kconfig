@@ -102,6 +102,7 @@ source "drivers/staging/greybus/Kconfig"
 
 source "drivers/staging/vc04_services/Kconfig"
 
+<<<<<<< HEAD
 source "drivers/staging/vboxvideo/Kconfig"
 
 source "drivers/staging/pi433/Kconfig"
@@ -124,6 +125,8 @@ source "drivers/staging/axis-fifo/Kconfig"
 
 source "drivers/staging/qcacld-3.0/Kconfig"
 
+=======
+>>>>>>> 74bd49901792 (staging: Include prima)
 source "drivers/staging/prima/Kconfig"
 
 endif # STAGING

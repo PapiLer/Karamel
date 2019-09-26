@@ -40,6 +40,7 @@ obj-$(CONFIG_WILC1000)		+= wilc1000/
 obj-$(CONFIG_MOST)		+= most/
 obj-$(CONFIG_KS7010)		+= ks7010/
 obj-$(CONFIG_GREYBUS)		+= greybus/
+<<<<<<< HEAD
 obj-$(CONFIG_BCM2835_VCHIQ)	+= vc04_services/
 obj-$(CONFIG_DRM_VBOXVIDEO)	+= vboxvideo/
 obj-$(CONFIG_PI433)		+= pi433/
@@ -52,4 +53,7 @@ obj-$(CONFIG_SOC_MT7621)	+= mt7621-dts/
 obj-$(CONFIG_STAGING_GASKET_FRAMEWORK)	+= gasket/
 obj-$(CONFIG_XIL_AXIS_FIFO)	+= axis-fifo/
 obj-$(CONFIG_QCA_CLD_WLAN)	+= qcacld-3.0/
+=======
+obj-$(CONFIG_BCM2708_VCHIQ)	+= vc04_services/
+>>>>>>> 74bd49901792 (staging: Include prima)
 obj-$(CONFIG_PRONTO_WLAN)	+= prima/
