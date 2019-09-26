@@ -35,9 +35,12 @@
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
+<<<<<<< HEAD
 #define stringify(s)	stringify_(s)
 #define stringify_(s)	#s
 
+=======
+>>>>>>> 78678366212d (scripts/dtc: Update to upstream version DTC 1.4.4-Android-build)
 static inline void NORETURN PRINTF(1, 2) die(const char *str, ...)
 {
 	va_list ap;

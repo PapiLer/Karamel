@@ -190,14 +190,22 @@ int fdt_add_mem_rsv(void *fdt, uint64_t address, uint64_t size)
 
 int fdt_del_mem_rsv(void *fdt, int n)
 {
+<<<<<<< HEAD
 	struct fdt_reserve_entry *re = fdt_mem_rsv_w_(fdt, n);
+=======
+	struct fdt_reserve_entry *re = _fdt_mem_rsv_w(fdt, n);
+>>>>>>> 78678366212d (scripts/dtc: Update to upstream version DTC 1.4.4-Android-build)
 
 	FDT_RW_CHECK_HEADER(fdt);
 
 	if (n >= fdt_num_mem_rsv(fdt))
 		return -FDT_ERR_NOTFOUND;
 
+<<<<<<< HEAD
 	return fdt_splice_mem_rsv_(fdt, re, 1, 0);
+=======
+	return _fdt_splice_mem_rsv(fdt, re, 1, 0);
+>>>>>>> 78678366212d (scripts/dtc: Update to upstream version DTC 1.4.4-Android-build)
 }
 
 static int fdt_resize_property_(void *fdt, int nodeoffset, const char *name,
@@ -283,6 +291,7 @@ int fdt_setprop_placeholder(void *fdt, int nodeoffset, const char *name,
 	if (err)
 		return err;
 
+<<<<<<< HEAD
 	*prop_data = prop->data;
 	return 0;
 }
@@ -299,6 +308,10 @@ int fdt_setprop(void *fdt, int nodeoffset, const char *name,
 
 	if (len)
 		memcpy(prop_data, val, len);
+=======
+	if (len)
+		memcpy(prop->data, val, len);
+>>>>>>> 78678366212d (scripts/dtc: Update to upstream version DTC 1.4.4-Android-build)
 	return 0;
 }
 
@@ -407,7 +420,7 @@ int fdt_del_node(void *fdt, int nodeoffset)
 static void fdt_packblocks_(const char *old, char *new,
 			    int mem_rsv_size, int struct_size)
 {
-	uint32_t mem_rsv_off, struct_off, strings_off;
+	int mem_rsv_off, struct_off, strings_off;
 
 	mem_rsv_off = FDT_ALIGN(sizeof(struct fdt_header), 8);
 	struct_off = mem_rsv_off + mem_rsv_size;

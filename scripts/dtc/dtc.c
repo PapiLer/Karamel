@@ -317,14 +317,21 @@ int main(int argc, char *argv[])
 		dti->boot_cpuid_phys = cmdline_boot_cpuid;
 
 	fill_fullpaths(dti->dt, "");
+<<<<<<< HEAD
+=======
+	process_checks(force, dti);
+>>>>>>> 78678366212d (scripts/dtc: Update to upstream version DTC 1.4.4-Android-build)
 
 	/* on a plugin, generate by default */
 	if (dti->dtsflags & DTSF_PLUGIN) {
 		generate_fixups = 1;
 	}
 
+<<<<<<< HEAD
 	process_checks(force, dti);
 
+=======
+>>>>>>> 78678366212d (scripts/dtc: Update to upstream version DTC 1.4.4-Android-build)
 	if (auto_label_aliases)
 		generate_label_tree(dti, "aliases", false);
 

@@ -201,8 +201,21 @@ devicetree:
 			} else {
 				struct node *target = get_node_by_ref($1, $2);
 
+<<<<<<< HEAD
 				if (target)
 					merge_nodes(target, $3);
+=======
+			if (target) {
+				merge_nodes(target, $3);
+			} else {
+				/*
+				 * We rely on the rule being always:
+				 *   versioninfo plugindecl memreserves devicetree
+				 * so $-1 is what we want (plugindecl)
+				 */
+				if ($<flags>-1 & DTSF_PLUGIN)
+					add_orphan_node($1, $3, $2);
+>>>>>>> 78678366212d (scripts/dtc: Update to upstream version DTC 1.4.4-Android-build)
 				else
 					ERROR(&@2, "Label or path %s not found", $2);
 			}
@@ -220,6 +233,7 @@ devicetree:
 
 			$$ = $1;
 		}
+<<<<<<< HEAD
 	| devicetree DT_OMIT_NO_REF DT_REF ';'
 		{
 			struct node *target = get_node_by_ref($1, $3);
@@ -231,6 +245,12 @@ devicetree:
 
 
 			$$ = $1;
+=======
+	| /* empty */
+		{
+			/* build empty node */
+			$$ = name_node(build_node(NULL, NULL), "");
+>>>>>>> 78678366212d (scripts/dtc: Update to upstream version DTC 1.4.4-Android-build)
 		}
 	;
 

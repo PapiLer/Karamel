@@ -168,8 +168,11 @@ struct node {
 
 	struct label *labels;
 	const struct bus_type *bus;
+<<<<<<< HEAD
 
 	bool omit_if_unused, is_referenced;
+=======
+>>>>>>> 78678366212d (scripts/dtc: Update to upstream version DTC 1.4.4-Android-build)
 };
 
 #define for_each_label_withdel(l0, l) \
@@ -208,7 +211,11 @@ struct node *omit_node_if_unused(struct node *node);
 struct node *reference_node(struct node *node);
 struct node *chain_node(struct node *first, struct node *list);
 struct node *merge_nodes(struct node *old_node, struct node *new_node);
+<<<<<<< HEAD
 struct node *add_orphan_node(struct node *old_node, struct node *new_node, char *ref);
+=======
+void add_orphan_node(struct node *old_node, struct node *new_node, char *ref);
+>>>>>>> 78678366212d (scripts/dtc: Update to upstream version DTC 1.4.4-Android-build)
 
 void add_property(struct node *node, struct property *prop);
 void delete_property_by_name(struct node *node, char *name);
