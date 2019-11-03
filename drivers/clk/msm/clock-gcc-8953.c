@@ -433,6 +433,7 @@ static struct clk_freq_tbl ftbl_gfx3d_clk_src_sdm632[] = {
         F_MM( 750000000,    1500000000,               gpll3,    1,    0,     0),
         F_MM( 775000000,    1550000000,               gpll3,    1,    0,     0),
         F_MM( 800000000,    1600000000,               gpll3,    1,    0,     0),
+        F_MM( 825000000,    1600000000,               gpll3,    1,    0,     0),
 	F_END
 };
 static struct rcg_clk gfx3d_clk_src = {
