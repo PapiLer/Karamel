@@ -2,7 +2,12 @@
  *
  * FocalTech TouchScreen driver.
  *
+<<<<<<< HEAD
  * Copyright (c) 2012-2019, FocalTech Systems, Ltd., all rights reserved.
+=======
+ * Copyright (c) 2012-2018, FocalTech Systems, Ltd., all rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -37,14 +42,23 @@
 #define _FT8716             0x87160805
 #define _FT8736             0x87360806
 #define _FT8006M            0x80060807
+<<<<<<< HEAD
 #define _FT8607             0x86070809
 #define _FT8006U            0x8006D80B
 #define _FT8006S            0x8006A80B
+=======
+#define _FT7250             0x72500807
+#define _FT8606             0x86060808
+#define _FT8607             0x86070809
+#define _FTE716             0xE716080A
+#define _FT8006U            0x8006D80B
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 #define _FT8613             0x8613080C
 #define _FT8719             0x8719080D
 #define _FT8739             0x8739080E
 #define _FT8615             0x8615080F
 #define _FT8201             0x82010810
+<<<<<<< HEAD
 #define _FT8006P            0x86220811
 #define _FT7251             0x72510812
 #define _FT7252             0x72520813
@@ -55,8 +69,56 @@
 #define _FT8656             0x86560818
 #define _FT8006S_AA         0x86320819
 #define _FT7250             0x7250081A
+=======
 
+#define _FT5416             0x54160402
+#define _FT5426             0x54260402
+#define _FT5435             0x54350402
+#define _FT5436             0x54360402
+#define _FT5526             0x55260402
+#define _FT5526I            0x5526B402
+#define _FT5446             0x54460402
+#define _FT5346             0x53460402
+#define _FT5446I            0x5446B402
+#define _FT5346I            0x5346B402
+#define _FT7661             0x76610402
+#define _FT7511             0x75110402
+#define _FT7421             0x74210402
+#define _FT7681             0x76810402
+#define _FT3C47U            0x3C47D402
+#define _FT3417             0x34170402
+#define _FT3517             0x35170402
+#define _FT3327             0x33270402
+#define _FT3427             0x34270402
+#define _FT7311             0x73110402
 
+#define _FT5626             0x56260401
+#define _FT5726             0x57260401
+#define _FT5826B            0x5826B401
+#define _FT5826S            0x5826C401
+#define _FT7811             0x78110401
+#define _FT3D47             0x3D470401
+#define _FT3617             0x36170401
+#define _FT3717             0x37170401
+#define _FT3817B            0x3817B401
+#define _FT3517U            0x3517D401
+
+#define _FT6236U            0x6236D003
+#define _FT6336G            0x6336A003
+#define _FT6336U            0x6336D003
+#define _FT6436U            0x6436D003
+
+#define _FT3267             0x32670004
+#define _FT3367             0x33670004
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
+
+#define _FT3327DQQ_001      0x3327D482
+#define _FT5446DQS_W01      0x5446D482
+#define _FT5446DQS_W02      0x5446A482
+#define _FT5446DQS_002      0x5446B482
+#define _FT5446DQS_Q02      0x5446C482
+
+<<<<<<< HEAD
 #define _FT5416             0x54160402
 #define _FT5426             0x54260402
 #define _FT5435             0x54350402
@@ -122,13 +184,21 @@
 #define _FT3068             0x30680085
 #define _FT3168             0x31680085
 #define _FT3268             0x32680085
+=======
+#define _FT3518             0x35180481
+#define _FT3558             0x35580481
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 
 /*************************************************/
 
 /*
  * choose your ic chip type of focaltech
  */
+<<<<<<< HEAD
 #define FTS_CHIP_TYPE   _FT3518
+=======
+#define FTS_CHIP_TYPE   _FT5446DQS_Q02
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 
 /******************* Enables *********************/
 /*********** 1 to enable, 0 to disable ***********/
@@ -161,21 +231,58 @@
  * ESD check & protection
  * default: disable
  */
-#define FTS_ESDCHECK_EN                         0
+#define FTS_ESDCHECK_EN                         1
 
+<<<<<<< HEAD
 
 /*
  * Pinctrl enable
  * default: disable
  */
 #define FTS_PINCTRL_EN                          1
+=======
+/*
+ * Production test enable
+ * 1: enable, 0:disable(default)
+ */
+#define FTS_TEST_EN                             1
+
+/*
+ * Glove mode enable
+ * 1: enable, 0:disable(default)
+ */
+#define FTS_GLOVE_EN                            0
+/*
+ * cover enable
+ * 1: enable, 0:disable(default)
+ */
+#define FTS_COVER_EN                            0
+/*
+ * Charger enable
+ * 1: enable, 0:disable(default)
+ */
+#define FTS_CHARGER_EN                          0
+
+/*
+ * Nodes for tools, please keep enable
+ */
+#define FTS_SYSFS_NODE_EN                       1
+#define FTS_APK_NODE_EN                         1
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
+
+/*
+ * Pinctrl enable
+ * default: disable
+ */
+#define FTS_PINCTRL_EN                          0
 
 /*
  * Customer power enable
  * enable it when customer need control TP power
  * default: disable
  */
-#define FTS_POWER_SOURCE_CUST_EN                1
+#define FTS_POWER_SOURCE_CUST_EN                0
+
 
 /****************************************************/
 
@@ -193,6 +300,7 @@
 /*
  * Numbers of modules support
  */
+<<<<<<< HEAD
 #define FTS_GET_MODULE_NUM                      0
 
 /*
@@ -236,6 +344,41 @@
  * define your own fw_file, the sample one is invalid
  */
 #define FTS_UPGRADE_FW3_FILE                   "include/firmware/fw_sample.i"
+=======
+#define FTS_GET_VENDOR_ID_NUM                   2
+
+/*
+ * vendor_id(s) for vendor(s) to be compatible with.
+ * a confirmation of vendor_id(s) is recommended.
+ * FTS_VENDOR_ID = PANEL_ID << 8 + VENDOR_ID
+ * FTS_GET_VENDOR_ID_NUM == 0/1, no check vendor id, you may ignore them
+ * FTS_GET_VENDOR_ID_NUM > 1, compatible with FTS_VENDOR_ID
+ * FTS_GET_VENDOR_ID_NUM >= 2, compatible with FTS_VENDOR_ID2
+ * FTS_GET_VENDOR_ID_NUM >= 3, compatible with FTS_VENDOR_ID3
+ */
+#define FTS_VENDOR_ID                          0x0000
+#define FTS_VENDOR_ID2                         0x51
+#define FTS_VENDOR_ID3                         0x0000
+
+/*
+ * FW.i file for auto upgrade, you must replace it with your own
+ * define your own fw_file, the sample one to be replaced is invalid
+ * NOTE: if FTS_GET_VENDOR_ID_NUM > 1, it's the fw corresponding with FTS_VENDOR_ID
+ */
+#define FTS_UPGRADE_FW_FILE                      "include/firmware/LQ_F6_FT5446DQS-M03_BOE_Black_V16_D01_20190327_app.i"
+
+/*
+ * if FTS_GET_VENDOR_ID_NUM >= 2, fw corrsponding with FTS_VENDOR_ID2
+ * define your own fw_file, the sample one is invalid
+ */
+#define FTS_UPGRADE_FW2_FILE                     "include/firmware/LQ_F6_FT5446DQS-M03_BOE_Black_V16_D01_20190327_app.i"
+
+/*
+ * if FTS_GET_VENDOR_ID_NUM >= 3, fw corrsponding with FTS_VENDOR_ID3
+ * define your own fw_file, the sample one is invalid
+ */
+#define FTS_UPGRADE_FW3_FILE                     "include/firmware/LQ_F6_FT5446DQS-M03_BOE_Black_V16_D01_20190327_app.i"
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 
 /*********************************************************/
 

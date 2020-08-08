@@ -2,7 +2,12 @@
  *
  * FocalTech TouchScreen driver.
  *
+<<<<<<< HEAD
  * Copyright (c) 2012-2019, FocalTech Systems, Ltd., all rights reserved.
+=======
+ * Copyright (c) 2012-2018, FocalTech Systems, Ltd., all rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -54,6 +59,7 @@
 *****************************************************************************/
 static void fts_prc_func(struct work_struct *work)
 {
+<<<<<<< HEAD
 	struct fts_ts_data *ts_data = container_of(work,
 					struct fts_ts_data, prc_work.work);
 	struct input_dev *input_dev = ts_data->input_dev;
@@ -125,11 +131,89 @@ int fts_point_report_check_init(struct fts_ts_data *ts_data)
 *  Return:
 *****************************************************************************/
 int fts_point_report_check_exit(struct fts_ts_data *ts_data)
-{
-	FTS_FUNC_ENTER();
+=======
+    struct fts_ts_data *ts_data = container_of(work,
+                                  struct fts_ts_data, prc_work.work);
+    struct input_dev *input_dev = ts_data->input_dev;
 
+#if FTS_MT_PROTOCOL_B_EN
+    u32 finger_count = 0;
+#endif
+
+    FTS_FUNC_ENTER();
+    mutex_lock(&ts_data->report_mutex);
+
+#if FTS_MT_PROTOCOL_B_EN
+    for (finger_count = 0; finger_count < ts_data->pdata->max_touch_number; finger_count++) {
+        input_mt_slot(input_dev, finger_count);
+        input_mt_report_slot_state(input_dev, MT_TOOL_FINGER, false);
+    }
+#else
+    input_mt_sync(input_dev);
+#endif
+    input_report_key(input_dev, BTN_TOUCH, 0);
+    input_sync(input_dev);
+
+    mutex_unlock(&ts_data->report_mutex);
+
+    FTS_FUNC_EXIT();
+}
+
+/*****************************************************************************
+*  Name: fts_prc_queue_work
+*  Brief: fts point report check queue work, call it when interrupt comes
+*  Input:
+*  Output:
+*  Return:
+*****************************************************************************/
+void fts_prc_queue_work(struct fts_ts_data *ts_data)
+{
+    cancel_delayed_work(&ts_data->prc_work);
+    queue_delayed_work(ts_data->ts_workqueue, &ts_data->prc_work,
+                       msecs_to_jiffies(POINT_REPORT_CHECK_WAIT_TIME));
+}
+
+/*****************************************************************************
+*  Name: fts_point_report_check_init
+*  Brief:
+*  Input:
+*  Output:
+*  Return: < 0: Fail to create esd check queue
+*****************************************************************************/
+int fts_point_report_check_init(struct fts_ts_data *ts_data)
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
+{
+    FTS_FUNC_ENTER();
+
+<<<<<<< HEAD
 	FTS_FUNC_EXIT();
 	return 0;
+=======
+    if (ts_data->ts_workqueue) {
+        INIT_DELAYED_WORK(&ts_data->prc_work, fts_prc_func);
+    } else {
+        FTS_ERROR("fts workqueue is NULL, can't run point report check function");
+        return -EINVAL;
+    }
+
+    FTS_FUNC_EXIT();
+    return 0;
+}
+
+/*****************************************************************************
+*  Name: fts_point_report_check_exit
+*  Brief:
+*  Input:
+*  Output:
+*  Return:
+*****************************************************************************/
+int fts_point_report_check_exit(struct fts_ts_data *ts_data)
+{
+    FTS_FUNC_ENTER();
+
+    FTS_FUNC_EXIT();
+    return 0;
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 }
 #endif /* FTS_POINT_REPORT_CHECK_EN */
 

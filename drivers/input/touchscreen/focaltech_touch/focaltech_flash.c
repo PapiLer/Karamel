@@ -2,7 +2,12 @@
  *
  * FocalTech fts TouchScreen driver.
  *
+<<<<<<< HEAD
  * Copyright (c) 2012-2019, Focaltech Ltd. All rights reserved.
+=======
+ * Copyright (c) 2012-2018, Focaltech Ltd. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -34,17 +39,24 @@
 *****************************************************************************/
 #include "focaltech_core.h"
 #include "focaltech_flash.h"
+#include "../lct_tp_fm_info.h"
 
 /*****************************************************************************
+<<<<<<< HEAD
 * Private constant and macro definitions using #define
 *****************************************************************************/
 #define FTS_FW_REQUEST_SUPPORT                      1
 /* Example: focaltech_ts_fw_tianma.bin */
 #define FTS_FW_NAME_PREX_WITH_REQUEST               "focaltech_ts_fw_"
+=======
+* Static variables
+*****************************************************************************/
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 
 /*****************************************************************************
 * Global variable or extern global variabls/functions
 *****************************************************************************/
+<<<<<<< HEAD
 u8 fw_file[1] = {
 0,
 };
@@ -57,11 +69,42 @@ struct upgrade_func *upgrade_func_list[] = {
 	&upgrade_func_ft5452,
 };
 
+=======
+
+#ifdef SUPPORT_READ_TP_VERSION
+		char fw_version[64];
+		u8 regvalue = 0;
+#endif
+
+/* Upgrade FW/PRAMBOOT/LCD CFG */
+u8 fw_file[] = {
+#include FTS_UPGRADE_FW_FILE
+};
+
+u8 fw_file2[] = {
+#include FTS_UPGRADE_FW2_FILE
+};
+
+u8 fw_file3[] = {
+#include FTS_UPGRADE_FW3_FILE
+};
+
+struct upgrade_fw fw_list[] = {
+	{FTS_VENDOR_ID, fw_file, sizeof(fw_file)},
+	{FTS_VENDOR_ID2, fw_file2, sizeof(fw_file2)},
+	{FTS_VENDOR_ID3, fw_file3, sizeof(fw_file3)},
+};
+
+struct upgrade_func *upgrade_func_list[] = {
+	&upgrade_func_ft5422u,
+};
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 struct fts_upgrade *fwupgrade;
 
 /*****************************************************************************
 * Static function prototypes
 *****************************************************************************/
+<<<<<<< HEAD
 static bool fts_fwupg_check_state(
 	struct fts_upgrade *upg, enum FW_STATUS rstate);
 
@@ -99,6 +142,431 @@ static int fts_fwupg_get_boot_state(
 		return ret;
 	}
 
+=======
+static u16 fts_pram_ecc_calc_host(u8 *pbuf, u16 length)
+{
+	u16 ecc = 0;
+	u16 i = 0;
+	u16 j = 0;
+
+	for ( i = 0; i < length; i += 2 ) {
+		ecc ^= ((pbuf[i] << 8) | (pbuf[i + 1]));
+		for (j = 0; j < 16; j ++) {
+			if (ecc & 0x01)
+				ecc = (u16)((ecc >> 1) ^ AL2_FCS_COEF);
+			else
+				ecc >>= 1;
+		}
+	}
+
+	return ecc;
+}
+
+/************************************************************************
+ * fts_pram_ecc_cal - Calculate and get pramboot ecc
+ *
+ * return pramboot ecc of tp if success, otherwise return error code
+ ***********************************************************************/
+static int fts_pram_ecc_cal_algo(
+	struct i2c_client *client,
+	u32 start_addr,
+	u32 ecc_length)
+{
+	int ret = 0;
+	int i = 0;
+	int ecc = 0;
+	u8 val[2] = { 0 };
+	u8 cmd[FTS_ROMBOOT_CMD_ECC_NEW_LEN] = { 0 };
+
+	FTS_INFO("read out pramboot checksum");
+	cmd[0] = FTS_ROMBOOT_CMD_ECC;
+	cmd[1] = BYTE_OFF_16(start_addr);
+	cmd[2] = BYTE_OFF_8(start_addr);
+	cmd[3] = BYTE_OFF_0(start_addr);
+	cmd[4] = BYTE_OFF_16(ecc_length);
+	cmd[5] = BYTE_OFF_8(ecc_length);
+	cmd[6] = BYTE_OFF_0(ecc_length);
+	ret = fts_i2c_write(client, cmd, FTS_ROMBOOT_CMD_ECC_NEW_LEN);
+	if (ret < 0) {
+		FTS_ERROR("write pramboot ecc cal cmd fail");
+		return ret;
+	}
+
+	cmd[0] = FTS_ROMBOOT_CMD_ECC_FINISH;
+	for (i = 0; i < 100; i++) {
+		msleep(1);
+		ret = fts_i2c_read(client, cmd, 1, val, 1);
+		if (ret < 0) {
+			FTS_ERROR("ecc_finish read cmd fail");
+			return ret;
+		}
+		if (0 == val[0])
+			break;
+	}
+	if (i >= 100) {
+		FTS_ERROR("wait ecc finish fail");
+		return -EIO;
+	}
+
+	cmd[0] = FTS_CMD_READ_ECC;
+	ret = fts_i2c_read(client, cmd, 1, val, 2);
+	if (ret < 0) {
+		FTS_ERROR("read pramboot ecc fail");
+		return ret;
+	}
+
+	ecc = ((u16)(val[0] << 8) + val[1]) & 0x0000FFFF;
+	return ecc;
+}
+
+static int fts_pram_ecc_cal_xor(struct i2c_client *client)
+{
+	int ret = 0;
+	u8 reg_val = 0;
+
+	FTS_INFO("read out pramboot checksum");
+
+	ret = fts_i2c_read_reg(client, FTS_ROMBOOT_CMD_ECC, &reg_val);
+	if (ret < 0) {
+		FTS_ERROR("read pramboot ecc fail");
+		return ret;
+	}
+
+	return (int)reg_val;
+}
+
+static int fts_pram_ecc_cal(struct i2c_client *client, u32 saddr, u32 len)
+{
+	if ((NULL == fwupgrade) && (NULL == fwupgrade->func)) {
+		FTS_ERROR("fwupgrade/func is null");
+		return -EINVAL;
+	}
+
+	if (fwupgrade->func->newmode) {
+		return fts_pram_ecc_cal_algo(client, saddr, len);
+	} else {
+		return fts_pram_ecc_cal_xor(client);
+	}
+}
+
+/************************************************************************
+ * fts_pram_write_buf - write pramboot data and calculate ecc
+ *
+ * return pramboot ecc of host if success, otherwise return error code
+ ***********************************************************************/
+static int fts_pram_write_buf(struct i2c_client *client, u8 *buf, u32 len)
+{
+	int ret = 0;
+	u32 i = 0;
+	u32 j = 0;
+	u32 offset = 0;
+	u32 remainder = 0;
+	u32 packet_number;
+	u32 packet_len = 0;
+	u8 packet_buf[FTS_FLASH_PACKET_LENGTH + FTS_CMD_WRITE_LEN] = { 0 };
+	u8 ecc_tmp = 0;
+	int ecc_in_host = 0;
+
+	FTS_INFO("write pramboot to pram");
+	if ((NULL == fwupgrade) && (NULL == fwupgrade->func)) {
+		FTS_ERROR("fwupgrade/func is null");
+		return -EINVAL;
+	}
+
+	if (NULL == buf) {
+		FTS_ERROR("pramboot buf is null");
+		return -EINVAL;
+	}
+
+	FTS_INFO("pramboot len=%d", len);
+	if ((len < PRAMBOOT_MIN_SIZE) || (len > PRAMBOOT_MAX_SIZE)) {
+		FTS_ERROR("pramboot length(%d) fail", len);
+		return -EINVAL;
+	}
+
+	packet_number = len / FTS_FLASH_PACKET_LENGTH;
+	remainder = len % FTS_FLASH_PACKET_LENGTH;
+	if (remainder > 0)
+		packet_number++;
+	packet_len = FTS_FLASH_PACKET_LENGTH;
+
+	packet_buf[0] = FTS_ROMBOOT_CMD_WRITE;
+	for (i = 0; i < packet_number; i++) {
+		offset = i * FTS_FLASH_PACKET_LENGTH;
+		packet_buf[1] = BYTE_OFF_16(offset);
+		packet_buf[2] = BYTE_OFF_8(offset);
+		packet_buf[3] = BYTE_OFF_0(offset);
+
+		/* last packet */
+		if ((i == (packet_number - 1)) && remainder)
+			packet_len = remainder;
+
+		packet_buf[4] = BYTE_OFF_8(packet_len);
+		packet_buf[5] = BYTE_OFF_0(packet_len);
+
+		for (j = 0; j < packet_len; j++) {
+			packet_buf[FTS_CMD_WRITE_LEN + j] = buf[offset + j];
+			if (!fwupgrade->func->newmode) {
+				ecc_tmp ^= packet_buf[FTS_CMD_WRITE_LEN + j];
+			}
+		}
+
+		ret = fts_i2c_write(client, packet_buf, packet_len + FTS_CMD_WRITE_LEN);
+		if (ret < 0) {
+			FTS_ERROR("pramboot write data(%d) fail", i);
+			return ret;
+		}
+	}
+
+	if (fwupgrade->func->newmode) {
+		ecc_in_host = (int)fts_pram_ecc_calc_host(buf, len);
+	} else {
+		ecc_in_host = (int)ecc_tmp;
+	}
+
+	return ecc_in_host;
+}
+
+/************************************************************************
+ * fts_pram_start - remap to start pramboot
+ *
+ * return 0 if success, otherwise return error code
+ ***********************************************************************/
+static int fts_pram_start(struct i2c_client *client)
+{
+	u8 cmd = FTS_ROMBOOT_CMD_START_APP;
+	int ret = 0;
+
+	FTS_INFO("remap to start pramboot");
+
+	ret = fts_i2c_write(client, &cmd, 1);
+	if (ret < 0) {
+		FTS_ERROR("write start pram cmd fail");
+		return ret;
+	}
+	msleep(FTS_DELAY_PRAMBOOT_START);
+
+	return 0;
+}
+
+/************************************************************************
+ * fts_pram_write_remap - write pramboot to pram and start pramboot
+ *
+ * return 0 if success, otherwise return error code
+***********************************************************************/
+static int fts_pram_write_remap(struct i2c_client *client)
+{
+	int ret = 0;
+	int ecc_in_host = 0;
+	int ecc_in_tp = 0;
+	u8 *pb_buf = NULL;
+	u32 pb_len = 0;
+	struct fts_upgrade *upg = fwupgrade;
+
+	FTS_INFO("write pram and remap");
+
+	if (!upg || !upg->func || !upg->func->pramboot) {
+		FTS_ERROR("upgrade/pramboot is null");
+		return -EINVAL;
+	}
+
+	if (upg->func->pb_length < FTS_MIN_LEN) {
+		FTS_ERROR("pramboot length(%d) fail", upg->func->pb_length);
+		return -EINVAL;
+	}
+
+	pb_buf = upg->func->pramboot;
+	pb_len = upg->func->pb_length;
+
+	/* write pramboot to pram */
+	ecc_in_host = fts_pram_write_buf(client, pb_buf, pb_len);
+	if (ecc_in_host < 0) {
+		FTS_ERROR( "write pramboot fail");
+		return ecc_in_host;
+	}
+
+	/* read out checksum */
+	ecc_in_tp = fts_pram_ecc_cal(client, 0, pb_len);
+	if (ecc_in_tp < 0) {
+		FTS_ERROR( "read pramboot ecc fail");
+		return ecc_in_tp;
+	}
+
+	FTS_INFO("pram ecc in tp:%x, host:%x", ecc_in_tp, ecc_in_host);
+	/*  pramboot checksum != fw checksum, upgrade fail */
+	if (ecc_in_host != ecc_in_tp) {
+		FTS_ERROR("pramboot ecc check fail");
+		return -EIO;
+	}
+
+	/*start pram*/
+	ret = fts_pram_start(client);
+	if (ret < 0) {
+		FTS_ERROR("pram start fail");
+		return ret;
+	}
+
+	return 0;
+}
+
+/************************************************************************
+ * fts_pram_init - initialize pramboot
+ *
+ * return 0 if success, otherwise return error code
+***********************************************************************/
+static int fts_pram_init(struct i2c_client *client)
+{
+	int ret = 0;
+	u8 reg_val = 0;
+	u8 wbuf[3] = { 0 };
+
+	FTS_INFO("pramboot initialization");
+
+	/* read flash ID */
+	wbuf[0] = FTS_CMD_FLASH_TYPE;
+	ret = fts_i2c_read(client, wbuf, 1, &reg_val, 1);
+	if (ret < 0) {
+		FTS_ERROR("read flash type fail");
+		return ret;
+	}
+
+	/* set flash clk */
+	wbuf[0] = FTS_CMD_FLASH_TYPE;
+	wbuf[1] = reg_val;
+	wbuf[2] = 0x00;
+	ret = fts_i2c_write(client, wbuf, 3);
+	if (ret < 0) {
+		FTS_ERROR("write flash type fail");
+		return ret;
+	}
+
+	return 0;
+}
+
+/************************************************************************
+* Name: fts_pram_write_init
+* Brief: wirte pramboot to pram and initialize
+* Input:
+* Output:
+* Return: return 0 if success, otherwise return error code
+***********************************************************************/
+int fts_pram_write_init(struct i2c_client *client)
+{
+	int ret = 0;
+	bool state = 0;
+	enum FW_STATUS status = FTS_RUN_IN_ERROR;
+	struct fts_upgrade *upg = fwupgrade;
+
+	FTS_INFO("**********pram write and init**********");
+	if ((NULL == upg) || (NULL == upg->func)) {
+		FTS_ERROR("upgrade/func is null");
+		return -EINVAL;
+	}
+
+	if (!upg->func->pramboot_supported) {
+		FTS_ERROR("ic not support pram");
+		return -EINVAL;
+	}
+
+	FTS_DEBUG("check whether tp is in romboot or not ");
+	/* need reset to romboot when non-romboot state */
+	ret = fts_fwupg_get_boot_state(client, &status);
+	if (status != FTS_RUN_IN_ROM) {
+		if (FTS_RUN_IN_PRAM == status) {
+			FTS_INFO("tp is in pramboot, need send reset cmd before upgrade");
+			ret = fts_pram_init(client);
+			if (ret < 0) {
+				FTS_ERROR("pramboot(before) init fail");
+				return ret;
+			}
+		}
+
+		FTS_INFO("tp isn't in romboot, need send reset to romboot");
+		ret = fts_fwupg_reset_to_romboot(client);
+		if (ret < 0) {
+			FTS_ERROR("reset to romboot fail");
+			return ret;
+		}
+	}
+
+	/* check the length of the pramboot */
+	ret = fts_pram_write_remap(client);
+	if (ret < 0) {
+		FTS_ERROR("pram write fail, ret=%d", ret);
+		return ret;
+	}
+
+	FTS_DEBUG("after write pramboot, confirm run in pramboot");
+	state = fts_fwupg_check_state(client, FTS_RUN_IN_PRAM);
+	if (!state) {
+		FTS_ERROR("not in pramboot");
+		return -EIO;
+	}
+
+	ret = fts_pram_init(client);
+	if (ret < 0) {
+		FTS_ERROR("pramboot init fail");
+		return ret;
+	}
+
+	return 0;
+}
+
+/************************************************************************
+* Name: fts_fwupg_check_fw_valid
+* Brief: check fw in tp is valid or not
+* Input:
+* Output:
+* Return: return true if fw is valid, otherwise return false
+***********************************************************************/
+bool fts_fwupg_check_fw_valid(struct i2c_client *client)
+{
+	int ret = 0;
+
+	ret = fts_wait_tp_to_valid(client);
+	if (ret < 0) {
+		FTS_INFO("tp fw invaild");
+		return false;
+	}
+
+	FTS_INFO("tp fw vaild");
+	return true;
+}
+
+/************************************************************************
+* Name: fts_fwupg_get_boot_state
+* Brief: read boot id(rom/pram/bootloader), confirm boot environment
+* Input:
+* Output:
+* Return: return 0 if success, otherwise return error code
+***********************************************************************/
+int fts_fwupg_get_boot_state(struct i2c_client *client, enum FW_STATUS *fw_sts)
+{
+	int ret = 0;
+	u8 cmd[4] = { 0 };
+	u32 cmd_len = 0;
+	u8 val[2] = { 0 };
+	struct ft_chip_t ids = fts_data->ic_info.ids;
+	struct fts_upgrade *upg = fwupgrade;
+
+	FTS_INFO("**********read boot id**********");
+	if ((NULL == fw_sts) || (NULL == upg) || (NULL == upg->func)) {
+		FTS_ERROR("upgrade/func/fw_sts is null");
+		return -EINVAL;
+	}
+
+	if (upg->func->hid_supported)
+		fts_i2c_hid2std(client);
+
+	cmd[0] = FTS_CMD_START1;
+	cmd[1] = FTS_CMD_START2;
+	ret = fts_i2c_write(client, cmd, 2);
+	if (ret < 0) {
+		FTS_ERROR("write 55 aa cmd fail");
+		return ret;
+	}
+
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	msleep(FTS_CMD_START_DELAY);
 	cmd[0] = FTS_CMD_READ_ID;
 	cmd[1] = cmd[2] = cmd[3] = 0x00;
@@ -106,11 +574,16 @@ static int fts_fwupg_get_boot_state(
 		cmd_len = FTS_CMD_READ_ID_LEN_INCELL;
 	else
 		cmd_len = FTS_CMD_READ_ID_LEN;
+<<<<<<< HEAD
 	ret = fts_read(cmd, cmd_len, val, 2);
+=======
+	ret = fts_i2c_read(client, cmd, cmd_len, val, 2);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	if (ret < 0) {
 		FTS_ERROR("write 90 cmd fail");
 		return ret;
 	}
+<<<<<<< HEAD
 	FTS_INFO("read boot id:0x%02x%02x", val[0], val[1]);
 
 	ids = &upg->ts_data->ic_info.ids;
@@ -121,6 +594,17 @@ static int fts_fwupg_get_boot_state(
 		FTS_INFO("tp run in pramboot");
 		*fw_sts = FTS_RUN_IN_PRAM;
 	} else if ((val[0] == ids->bl_idh) && (val[1] == ids->bl_idl)) {
+=======
+
+	FTS_INFO("read boot id:0x%02x%02x", val[0], val[1]);
+	if ((val[0] == ids.rom_idh) && (val[1] == ids.rom_idl)) {
+		FTS_INFO("tp run in romboot");
+		*fw_sts = FTS_RUN_IN_ROM;
+	} else if ((val[0] == ids.pb_idh) && (val[1] == ids.pb_idl)) {
+		FTS_INFO("tp run in pramboot");
+		*fw_sts = FTS_RUN_IN_PRAM;
+	} else if ((val[0] == ids.bl_idh) && (val[1] == ids.bl_idl)) {
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 		FTS_INFO("tp run in bootloader");
 		*fw_sts = FTS_RUN_IN_BOOTLOADER;
 	}
@@ -128,6 +612,7 @@ static int fts_fwupg_get_boot_state(
 	return 0;
 }
 
+<<<<<<< HEAD
 static int fts_fwupg_reset_to_boot(struct fts_upgrade *upg)
 {
 	int ret = 0;
@@ -139,13 +624,82 @@ static int fts_fwupg_reset_to_boot(struct fts_upgrade *upg)
 	}
 
 	ret = fts_write_reg(reg, FTS_UPGRADE_AA);
+=======
+/************************************************************************
+* Name: fts_fwupg_check_state
+* Brief: confirm tp run in romboot/pramboot/bootloader
+* Input:
+* Output:
+* Return: return true if state is match, otherwise return false
+***********************************************************************/
+bool fts_fwupg_check_state(struct i2c_client *client, enum FW_STATUS rstate)
+{
+	int ret = 0;
+	int i = 0;
+	enum FW_STATUS cstate = FTS_RUN_IN_ERROR;
+
+	for (i = 0; i < FTS_UPGRADE_LOOP; i++) {
+		ret = fts_fwupg_get_boot_state(client, &cstate);
+		/*         FTS_DEBUG("fw state=%d, retries=%d", cstate, i); */
+		if (cstate == rstate)
+			return true;
+		msleep(FTS_DELAY_READ_ID);
+	}
+
+	return false;
+}
+
+/************************************************************************
+* Name: fts_fwupg_reset_in_boot
+* Brief: RST CMD(07), reset to romboot(bootloader) in boot environment
+* Input:
+* Output:
+* Return: return 0 if success, otherwise return error code
+***********************************************************************/
+int fts_fwupg_reset_in_boot(struct i2c_client *client)
+{
+	int ret = 0;
+	u8 cmd = FTS_CMD_RESET;
+
+	FTS_INFO("reset in boot environment");
+	ret = fts_i2c_write(client, &cmd, 1);
+	if (ret < 0) {
+		FTS_ERROR("pram/rom/bootloader reset cmd write fail");
+		return ret;
+	}
+
+	msleep(FTS_DELAY_UPGRADE_RESET);
+	return 0;
+}
+
+/************************************************************************
+* Name: fts_fwupg_reset_to_boot
+* Brief: reset to boot environment
+* Input:
+* Output:
+* Return: return 0 if success, otherwise return error code
+***********************************************************************/
+int fts_fwupg_reset_to_boot(struct i2c_client *client)
+{
+	int ret = 0;
+
+	FTS_INFO("send 0xAA and 0x55 to FW, reset to boot environment");
+
+	ret = fts_i2c_write_reg(client, FTS_REG_UPGRADE, FTS_UPGRADE_AA);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	if (ret < 0) {
 		FTS_ERROR("write FC=0xAA fail");
 		return ret;
 	}
+<<<<<<< HEAD
 	msleep(FTS_DELAY_UPGRADE_AA);
 
 	ret = fts_write_reg(reg, FTS_UPGRADE_55);
+=======
+	msleep(FTS_DELAY_FC_AA);
+
+	ret = fts_i2c_write_reg(client, FTS_REG_UPGRADE, FTS_UPGRADE_55);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	if (ret < 0) {
 		FTS_ERROR("write FC=0x55 fail");
 		return ret;
@@ -162,14 +716,22 @@ static int fts_fwupg_reset_to_boot(struct fts_upgrade *upg)
 * Output:
 * Return: return 0 if success, otherwise return error code
 ***********************************************************************/
+<<<<<<< HEAD
 static int fts_fwupg_reset_to_romboot(struct fts_upgrade *upg)
+=======
+int fts_fwupg_reset_to_romboot(struct i2c_client *client)
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 {
 	int ret = 0;
 	int i = 0;
 	u8 cmd = FTS_CMD_RESET;
 	enum FW_STATUS state = FTS_RUN_IN_ERROR;
 
+<<<<<<< HEAD
 	ret = fts_write(&cmd, 1);
+=======
+	ret = fts_i2c_write(client, &cmd, 1);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	if (ret < 0) {
 		FTS_ERROR("pram/rom/bootloader reset cmd write fail");
 		return ret;
@@ -177,7 +739,11 @@ static int fts_fwupg_reset_to_romboot(struct fts_upgrade *upg)
 	mdelay(10);
 
 	for (i = 0; i < FTS_UPGRADE_LOOP; i++) {
+<<<<<<< HEAD
 		ret = fts_fwupg_get_boot_state(upg, &state);
+=======
+		ret = fts_fwupg_get_boot_state(client, &state);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 		if (FTS_RUN_IN_ROM == state)
 			break;
 		mdelay(5);
@@ -190,6 +756,7 @@ static int fts_fwupg_reset_to_romboot(struct fts_upgrade *upg)
 	return 0;
 }
 
+<<<<<<< HEAD
 static u16 fts_crc16_calc_host(u8 *pbuf, u16 length)
 {
 	u16 ecc = 0;
@@ -597,6 +1164,8 @@ int fts_fwupg_reset_in_boot(void)
 	return 0;
 }
 
+=======
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 /************************************************************************
 * Name: fts_fwupg_enter_into_boot
 * Brief: enter into boot environment, ready for upgrade
@@ -604,7 +1173,11 @@ int fts_fwupg_reset_in_boot(void)
 * Output:
 * Return: return 0 if success, otherwise return error code
 ***********************************************************************/
+<<<<<<< HEAD
 int fts_fwupg_enter_into_boot(void)
+=======
+int fts_fwupg_enter_into_boot(struct i2c_client *client)
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 {
 	int ret = 0;
 	bool fwvalid = false;
@@ -612,30 +1185,47 @@ int fts_fwupg_enter_into_boot(void)
 	struct fts_upgrade *upg = fwupgrade;
 
 	FTS_INFO("***********enter into pramboot/bootloader***********");
+<<<<<<< HEAD
 	if ((!upg) || (NULL == upg->func)) {
+=======
+	if ((NULL == upg) || (NULL == upg->func)) {
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 		FTS_ERROR("upgrade/func is null");
 		return -EINVAL;
 	}
 
+<<<<<<< HEAD
 	fwvalid = fts_fwupg_check_fw_valid();
 	if (fwvalid) {
 		ret = fts_fwupg_reset_to_boot(upg);
+=======
+	fwvalid = fts_fwupg_check_fw_valid(client);
+	if (fwvalid) {
+		ret = fts_fwupg_reset_to_boot(client);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 		if (ret < 0) {
 			FTS_ERROR("enter into romboot/bootloader fail");
 			return ret;
 		}
+<<<<<<< HEAD
 	} else if (upg->func->read_boot_id_need_reset) {
 		ret = fts_fwupg_reset_in_boot();
 		if (ret < 0) {
 			FTS_ERROR("reset before read boot id when fw invalid fail");
 			return ret;
 		}
+=======
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	}
 
 	if (upg->func->pramboot_supported) {
 		FTS_INFO("pram supported, write pramboot and init");
 		/* pramboot */
+<<<<<<< HEAD
 		ret = fts_pram_write_init(upg);
+=======
+		ret = fts_pram_write_init(client);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 		if (ret < 0) {
 			FTS_ERROR("pram write_init fail");
 			return ret;
@@ -643,7 +1233,11 @@ int fts_fwupg_enter_into_boot(void)
 	} else {
 		FTS_DEBUG("pram not supported, confirm in bootloader");
 		/* bootloader */
+<<<<<<< HEAD
 		state = fts_fwupg_check_state(upg, FTS_RUN_IN_BOOTLOADER);
+=======
+		state = fts_fwupg_check_state(client, FTS_RUN_IN_BOOTLOADER);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 		if (!state) {
 			FTS_ERROR("fw not in bootloader, fail");
 			return -EIO;
@@ -663,6 +1257,10 @@ int fts_fwupg_enter_into_boot(void)
  * Return: return true if flash status check pass, otherwise return false
 ***********************************************************************/
 static bool fts_fwupg_check_flash_status(
+<<<<<<< HEAD
+=======
+	struct i2c_client *client,
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	u16 flash_status,
 	int retries,
 	int retries_delay)
@@ -675,7 +1273,11 @@ static bool fts_fwupg_check_flash_status(
 
 	for (i = 0; i < retries; i++) {
 		cmd = FTS_CMD_FLASH_STATUS;
+<<<<<<< HEAD
 		ret = fts_read(&cmd , 1, val, FTS_CMD_FLASH_STATUS_LEN);
+=======
+		ret = fts_i2c_read(client, &cmd , 1, val, FTS_CMD_FLASH_STATUS_LEN);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 		read_status = (((u16)val[0]) << 8) + val[1];
 		if (flash_status == read_status) {
 			/* FTS_DEBUG("[UPGRADE]flash status ok"); */
@@ -695,7 +1297,11 @@ static bool fts_fwupg_check_flash_status(
  * Output:
  * Return: return 0 if success, otherwise return error code
  ***********************************************************************/
+<<<<<<< HEAD
 int fts_fwupg_erase(u32 delay)
+=======
+int fts_fwupg_erase(struct i2c_client *client, u32 delay)
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 {
 	int ret = 0;
 	u8 cmd = 0;
@@ -705,7 +1311,11 @@ int fts_fwupg_erase(u32 delay)
 
 	/*send to erase flash*/
 	cmd = FTS_CMD_ERASE_APP;
+<<<<<<< HEAD
 	ret = fts_write(&cmd, 1);
+=======
+	ret = fts_i2c_write(client, &cmd, 1);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	if (ret < 0) {
 		FTS_ERROR("erase cmd fail");
 		return ret;
@@ -713,9 +1323,14 @@ int fts_fwupg_erase(u32 delay)
 	msleep(delay);
 
 	/* read status 0xF0AA: success */
+<<<<<<< HEAD
 	flag = fts_fwupg_check_flash_status(FTS_CMD_FLASH_STATUS_ERASE_OK,
 						FTS_RETRIES_REASE,
 						FTS_RETRIES_DELAY_REASE);
+=======
+	flag = fts_fwupg_check_flash_status(client, FTS_CMD_FLASH_STATUS_ERASE_OK,
+						                FTS_RETRIES_REASE, FTS_RETRIES_DELAY_REASE);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	if (!flag) {
 		FTS_ERROR("ecc flash status check fail");
 		return -EIO;
@@ -732,19 +1347,27 @@ int fts_fwupg_erase(u32 delay)
  * Output:
  * Return: return data ecc of tp if success, otherwise return error code
  ***********************************************************************/
+<<<<<<< HEAD
 int fts_fwupg_ecc_cal(u32 saddr, u32 len)
+=======
+int fts_fwupg_ecc_cal(struct i2c_client *client, u32 saddr, u32 len)
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 {
 	int ret = 0;
 	u32 i = 0;
 	u8 wbuf[FTS_CMD_ECC_CAL_LEN] = { 0 };
 	u8 val[FTS_CMD_FLASH_STATUS_LEN] = { 0 };
+<<<<<<< HEAD
 	int ecc = 0;
 	int ecc_len = 0;
+=======
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	u32 packet_num = 0;
 	u32 packet_len = 0;
 	u32 remainder = 0;
 	u32 addr = 0;
 	u32 offset = 0;
+<<<<<<< HEAD
 	struct fts_upgrade *upg = fwupgrade;
 
 	FTS_INFO( "**********read out checksum**********");
@@ -756,6 +1379,14 @@ int fts_fwupg_ecc_cal(u32 saddr, u32 len)
 	/* check sum init */
 	wbuf[0] = FTS_CMD_ECC_INIT;
 	ret = fts_write(wbuf, 1);
+=======
+
+	FTS_INFO( "**********read out checksum**********");
+
+	/* check sum init */
+	wbuf[0] = FTS_CMD_ECC_INIT;
+	ret = fts_i2c_write(client, wbuf, 1);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	if (ret < 0) {
 		FTS_ERROR("ecc init cmd write fail");
 		return ret;
@@ -765,7 +1396,10 @@ int fts_fwupg_ecc_cal(u32 saddr, u32 len)
 	remainder = len % FTS_MAX_LEN_ECC_CALC;
 	if (remainder)
 		packet_num++;
+<<<<<<< HEAD
 
+=======
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	packet_len = FTS_MAX_LEN_ECC_CALC;
 	FTS_INFO("ecc calc num:%d, remainder:%d", packet_num, remainder);
 
@@ -784,7 +1418,11 @@ int fts_fwupg_ecc_cal(u32 saddr, u32 len)
 		wbuf[5] = BYTE_OFF_0(packet_len);
 
 		FTS_DEBUG("ecc calc startaddr:0x%04x, len:%d", addr, packet_len);
+<<<<<<< HEAD
 		ret = fts_write(wbuf, FTS_CMD_ECC_CAL_LEN);
+=======
+		ret = fts_i2c_write(client, wbuf, FTS_CMD_ECC_CAL_LEN);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 		if (ret < 0) {
 			FTS_ERROR("ecc calc cmd write fail");
 			return ret;
@@ -793,15 +1431,21 @@ int fts_fwupg_ecc_cal(u32 saddr, u32 len)
 		msleep(packet_len / 256);
 
 		/* read status if check sum is finished */
+<<<<<<< HEAD
 		ret = fts_fwupg_check_flash_status(FTS_CMD_FLASH_STATUS_ECC_OK,
 						FTS_RETRIES_ECC_CAL,
 						FTS_RETRIES_DELAY_ECC_CAL);
+=======
+		ret = fts_fwupg_check_flash_status(client, FTS_CMD_FLASH_STATUS_ECC_OK,
+						                   FTS_RETRIES_ECC_CAL, FTS_RETRIES_DELAY_ECC_CAL);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 		if (ret < 0) {
 			FTS_ERROR("ecc flash status read fail");
 			return ret;
 		}
 	}
 
+<<<<<<< HEAD
 	ecc_len = 1;
 	if (ECC_CHECK_MODE_CRC16 == upg->func->fw_ecc_check_mode) {
 		ecc_len = 2;
@@ -810,11 +1454,17 @@ int fts_fwupg_ecc_cal(u32 saddr, u32 len)
 	/* read out check sum */
 	wbuf[0] = FTS_CMD_ECC_READ;
 	ret = fts_read(wbuf, 1, val, ecc_len);
+=======
+	/* read out check sum */
+	wbuf[0] = FTS_CMD_ECC_READ;
+	ret = fts_i2c_read(client, wbuf, 1, val, 1);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	if (ret < 0) {
 		FTS_ERROR( "ecc read cmd write fail");
 		return ret;
 	}
 
+<<<<<<< HEAD
 	if (ECC_CHECK_MODE_CRC16 == upg->func->fw_ecc_check_mode) {
 		ecc = (int)((u16)(val[0] << 8) + val[1]);
 	} else {
@@ -822,6 +1472,9 @@ int fts_fwupg_ecc_cal(u32 saddr, u32 len)
 	}
 
 	return ecc;
+=======
+	return val[0];
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 }
 
 /************************************************************************
@@ -835,6 +1488,10 @@ int fts_fwupg_ecc_cal(u32 saddr, u32 len)
  * Return: return data ecc of host if success, otherwise return error code
  ***********************************************************************/
 int fts_flash_write_buf(
+<<<<<<< HEAD
+=======
+	struct i2c_client *client,
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	u32 saddr,
 	u8 *buf,
 	u32 len,
@@ -849,17 +1506,29 @@ int fts_flash_write_buf(
 	u32 offset = 0;
 	u32 remainder = 0;
 	u8 packet_buf[FTS_FLASH_PACKET_LENGTH + FTS_CMD_WRITE_LEN] = { 0 };
+<<<<<<< HEAD
 	u8 ecc_tmp = 0;
 	int ecc_in_host = 0;
+=======
+	u8 ecc_in_host = 0;
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	u8 cmd = 0;
 	u8 val[FTS_CMD_FLASH_STATUS_LEN] = { 0 };
 	u16 read_status = 0;
 	u16 wr_ok = 0;
+<<<<<<< HEAD
 	struct fts_upgrade *upg = fwupgrade;
 
 	FTS_INFO( "**********write data to flash**********");
 	if ((!upg) || (!upg->func || !buf || !len)) {
 		FTS_ERROR("upgrade/func/buf/len is invalid");
+=======
+
+	FTS_INFO( "**********write data to flash**********");
+
+	if ((NULL == buf) || (0 == len)) {
+		FTS_ERROR("buf is NULL or len is 0");
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 		return -EINVAL;
 	}
 
@@ -888,10 +1557,17 @@ int fts_flash_write_buf(
 
 		for (j = 0; j < packet_len; j++) {
 			packet_buf[FTS_CMD_WRITE_LEN + j] = buf[offset + j];
+<<<<<<< HEAD
 			ecc_tmp ^= packet_buf[FTS_CMD_WRITE_LEN + j];
 		}
 
 		ret = fts_write(packet_buf, packet_len + FTS_CMD_WRITE_LEN);
+=======
+			ecc_in_host ^= packet_buf[FTS_CMD_WRITE_LEN + j];
+		}
+
+		ret = fts_i2c_write(client, packet_buf, packet_len + FTS_CMD_WRITE_LEN);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 		if (ret < 0) {
 			FTS_ERROR("app write fail");
 			return ret;
@@ -902,7 +1578,11 @@ int fts_flash_write_buf(
 		wr_ok = FTS_CMD_FLASH_STATUS_WRITE_OK + addr / packet_len;
 		for (j = 0; j < FTS_RETRIES_WRITE; j++) {
 			cmd = FTS_CMD_FLASH_STATUS;
+<<<<<<< HEAD
 			ret = fts_read(&cmd , 1, val, FTS_CMD_FLASH_STATUS_LEN);
+=======
+			ret = fts_i2c_read(client, &cmd , 1, val, FTS_CMD_FLASH_STATUS_LEN);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 			read_status = (((u16)val[0]) << 8) + val[1];
 			/*  FTS_INFO("%x %x", wr_ok, read_status); */
 			if (wr_ok == read_status) {
@@ -912,12 +1592,16 @@ int fts_flash_write_buf(
 		}
 	}
 
+<<<<<<< HEAD
 	ecc_in_host = (int)ecc_tmp;
 	if (ECC_CHECK_MODE_CRC16 == upg->func->fw_ecc_check_mode) {
 		ecc_in_host = (int)fts_crc16_calc_host(buf, len);
 	}
 
 	return ecc_in_host;
+=======
+	return (int)ecc_in_host;
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 }
 
 /************************************************************************
@@ -931,7 +1615,11 @@ int fts_flash_write_buf(
  *
  * Warning: can't call this function directly, need call in boot environment
  ***********************************************************************/
+<<<<<<< HEAD
 static int fts_flash_read_buf(u32 saddr, u8 *buf, u32 len)
+=======
+int fts_flash_read_buf(struct i2c_client *client, u32 saddr, u8 *buf, u32 len)
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 {
 	int ret = 0;
 	u32 i = 0;
@@ -940,7 +1628,11 @@ static int fts_flash_read_buf(u32 saddr, u8 *buf, u32 len)
 	u32 addr = 0;
 	u32 offset = 0;
 	u32 remainder = 0;
+<<<<<<< HEAD
 	u8 wbuf[FTS_CMD_READ_LEN] = { 0 };
+=======
+	u8 wbuf[FTS_CMD_READ_LEN];
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 
 	if ((NULL == buf) || (0 == len)) {
 		FTS_ERROR("buf is NULL or len is 0");
@@ -967,14 +1659,22 @@ static int fts_flash_read_buf(u32 saddr, u8 *buf, u32 len)
 		if ((i == (packet_number - 1)) && remainder)
 			packet_len = remainder;
 
+<<<<<<< HEAD
 		ret = fts_write(wbuf, FTS_CMD_READ_LEN);
+=======
+		ret = fts_i2c_write(client, wbuf, FTS_CMD_READ_LEN);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 		if (ret < 0) {
 			FTS_ERROR("pram/bootloader write 03 command fail");
 			return ret;
 		}
 
 		msleep(FTS_CMD_READ_DELAY); /* must wait, otherwise read wrong data */
+<<<<<<< HEAD
 		ret = fts_read(NULL, 0, buf + offset, packet_len);
+=======
+		ret = fts_i2c_read(client, NULL, 0, buf + offset, packet_len);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 		if (ret < 0) {
 			FTS_ERROR("pram/bootloader read 03 command fail");
 			return ret;
@@ -992,23 +1692,39 @@ static int fts_flash_read_buf(u32 saddr, u8 *buf, u32 len)
  * Output: buf   - data read from flash
  * Return: return 0 if success, otherwise return error code
  ***********************************************************************/
+<<<<<<< HEAD
 static int fts_flash_read(u32 addr, u8 *buf, u32 len)
+=======
+int fts_flash_read(struct i2c_client *client, u32 addr, u8 *buf, u32 len)
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 {
 	int ret = 0;
 
 	FTS_INFO("***********read flash***********");
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	if ((NULL == buf) || (0 == len)) {
 		FTS_ERROR("buf is NULL or len is 0");
 		return -EINVAL;
 	}
 
+<<<<<<< HEAD
 	ret = fts_fwupg_enter_into_boot();
+=======
+	ret = fts_fwupg_enter_into_boot(client);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	if (ret < 0) {
 		FTS_ERROR("enter into pramboot/bootloader fail");
 		goto read_flash_err;
 	}
 
+<<<<<<< HEAD
 	ret = fts_flash_read_buf(addr, buf, len);
+=======
+	ret = fts_flash_read_buf(client, addr, buf, len);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	if (ret < 0) {
 		FTS_ERROR("read flash fail");
 		goto read_flash_err;
@@ -1016,14 +1732,29 @@ static int fts_flash_read(u32 addr, u8 *buf, u32 len)
 
 read_flash_err:
 	/* reset to normal boot */
+<<<<<<< HEAD
 	ret = fts_fwupg_reset_in_boot();
+=======
+	ret = fts_fwupg_reset_in_boot(client);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	if (ret < 0) {
 		FTS_ERROR("reset to normal boot fail");
 	}
 	return ret;
 }
 
+<<<<<<< HEAD
 static int fts_read_file(char *file_name, u8 **file_buf)
+=======
+/************************************************************************
+ * Name: fts_read_file
+ * Brief:  read file
+ * Input: file name
+ * Output:
+ * Return: return file len if succuss, otherwise return error code
+ ***********************************************************************/
+int fts_read_file(char *file_name, u8 **file_buf)
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 {
 	int ret = 0;
 	char file_path[FILE_NAME_LENGTH] = { 0 };
@@ -1068,6 +1799,7 @@ static int fts_read_file(char *file_name, u8 **file_buf)
 	FTS_INFO("file len:%d read len:%d pos:%d", (u32)file_len, ret, (u32)pos);
 	filp_close(filp, NULL);
 	set_fs(old_fs);
+<<<<<<< HEAD
 
 	return ret;
 }
@@ -1652,11 +2384,14 @@ int fts_fwupg_upgrade(struct fts_upgrade *upg)
 			}
 		}
 	} while (upgrade_count < 2);
+=======
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 
 	return ret;
 }
 
 /************************************************************************
+<<<<<<< HEAD
  * fts_fwupg_auto_upgrade - upgrade main entry
  ***********************************************************************/
 static void fts_fwupg_auto_upgrade(struct fts_upgrade *upg)
@@ -1850,11 +2585,436 @@ static int fts_fwupg_get_fw_file(struct fts_upgrade *upg)
 		ret = fts_get_fw_file_via_request_firmware(upg);
 		if (ret != 0) {
 			get_fw_i_flag = true;
+=======
+* Name: fts_upgrade_bin
+* Brief:
+* Input:
+* Output:
+* Return: return 0 if success, otherwise return error code
+***********************************************************************/
+int fts_upgrade_bin(struct i2c_client *client, char *fw_name, bool force)
+{
+	int ret = 0;
+	u32 fw_file_len = 0;
+	u8 *fw_file_buf = NULL;
+	struct fts_upgrade *upg = fwupgrade;
+
+	FTS_INFO("start upgrade with fw bin");
+	if ((NULL == upg) || (NULL == upg->func)) {
+		FTS_ERROR("upgrade/func is null");
+		return -EINVAL;
+	}
+
+	ret = fts_read_file(fw_name, &fw_file_buf);
+	if ((ret < 0) || (ret < FTS_MIN_LEN) || (ret > FTS_MAX_LEN_FILE)) {
+		FTS_ERROR("read fw bin file(sdcard) fail, len:%d", ret);
+		goto err_bin;
+	}
+
+	fw_file_len = ret;
+	FTS_INFO("fw bin file len:%d", fw_file_len);
+	if (force) {
+		if (upg->func->force_upgrade) {
+			ret = upg->func->force_upgrade(client, fw_file_buf, fw_file_len);
+		} else {
+			FTS_INFO("force_upgrade function is null, no upgrade");
+			goto err_bin;
+		}
+	} else {
+#if FTS_AUTO_LIC_UPGRADE_EN
+		if (upg->func->lic_upgrade) {
+			ret = upg->func->lic_upgrade(client, fw_file_buf, fw_file_len);
+		} else {
+			FTS_INFO("lic_upgrade function is null, no upgrade");
+		}
+#endif
+		if (upg->func->upgrade) {
+			ret = upg->func->upgrade(client, fw_file_buf, fw_file_len);
+		} else {
+			FTS_INFO("upgrade function is null, no upgrade");
+		}
+	}
+
+	if (ret < 0) {
+		FTS_ERROR("upgrade fw bin failed");
+		fts_fwupg_reset_in_boot(client);
+		goto err_bin;
+	}
+
+	FTS_INFO("upgrade fw bin success");
+
+err_bin:
+	if (fw_file_buf) {
+		vfree(fw_file_buf);
+		fw_file_buf = NULL;
+	}
+	return ret;
+}
+
+#if FTS_AUTO_LIC_UPGRADE_EN
+static int fts_lic_get_vid_in_tp(struct i2c_client *client, u16 *vid)
+{
+	int ret = 0;
+	u8 val[2] = { 0 };
+
+	if (NULL == vid) {
+		FTS_ERROR("vid is NULL");
+		return -EINVAL;
+	}
+
+	ret = fts_i2c_read_reg(client, FTS_REG_VENDOR_ID, &val[0]);
+	if (fts_data->ic_info.is_incell)
+		ret = fts_i2c_read_reg(client, FTS_REG_MODULE_ID, &val[1]);
+	if (ret < 0) {
+		FTS_ERROR("read vid from tp fail");
+		return ret;
+	}
+
+	*vid = *(u16 *)val;
+	return 0;
+}
+
+static int fts_lic_get_vid_in_host(u16 *vid)
+{
+	u8 val[2] = { 0 };
+	u8 *licbuf = NULL;
+	u32 conf_saddr = 0;
+	struct fts_upgrade *upg = fwupgrade;
+
+	if (!upg || !upg->func || !upg->lic || !vid) {
+		FTS_ERROR("upgrade/func/get_hlic_ver/lic/vid is null");
+		return -EINVAL;
+	}
+
+	if (upg->lic_length < FTS_MAX_LEN_SECTOR) {
+		FTS_ERROR("lic length(%x) fail", upg->lic_length);
+		return -EINVAL;
+	}
+
+	licbuf  = upg->lic;
+	conf_saddr = upg->func->fwcfgoff;
+	val[0] = licbuf[conf_saddr + FTS_CONIFG_VENDORID_OFF];
+	if (fts_data->ic_info.is_incell)
+		val[1] = licbuf[conf_saddr + FTS_CONIFG_MODULEID_OFF];
+
+	*vid = *(u16 *)val;
+	return 0;
+}
+
+static int fts_lic_get_ver_in_tp(struct i2c_client *client, u8 *ver)
+{
+	int ret = 0;
+
+	if (NULL == ver) {
+		FTS_ERROR("ver is NULL");
+		return -EINVAL;
+	}
+
+	ret = fts_i2c_read_reg(client, FTS_REG_LIC_VER, ver);
+	if (ret < 0) {
+		FTS_ERROR("read lcd initcode ver from tp fail");
+		return ret;
+	}
+
+	return 0;
+}
+
+static int fts_lic_get_ver_in_host(u8 *ver)
+{
+	int ret = 0;
+	struct fts_upgrade *upg = fwupgrade;
+
+	if (!upg || !upg->func || !upg->func->get_hlic_ver || !upg->lic) {
+		FTS_ERROR("upgrade/func/get_hlic_ver/lic is null");
+		return -EINVAL;
+	}
+
+	ret = upg->func->get_hlic_ver(upg->lic);
+	if (ret < 0) {
+		FTS_ERROR("get host lcd initial code version fail");
+		return ret;
+	}
+
+	*ver = (u8)ret;
+	return ret;
+}
+
+/* check if lcd init code need upgrade
+* true-need  false-no need
+*/
+static bool fts_lic_need_upgrade(struct i2c_client *client)
+{
+	int ret = 0;
+	u8 initcode_ver_in_tp = 0;
+	u8 initcode_ver_in_host = 0;
+	u16 vid_in_tp = 0;
+	u16 vid_in_host = 0;
+	bool fwvalid = false;
+
+	fwvalid = fts_fwupg_check_fw_valid(client);
+	if ( !fwvalid) {
+		FTS_INFO("fw is invalid, no upgrade lcd init code");
+		return false;
+	}
+
+	ret = fts_lic_get_vid_in_host(&vid_in_host);
+	if (ret < 0) {
+		FTS_ERROR("vendor id in host invalid");
+		return false;
+	}
+
+	ret = fts_lic_get_vid_in_tp(client, &vid_in_tp);
+	if (ret < 0) {
+		FTS_ERROR("vendor id in tp invalid");
+		return false;
+	}
+
+	FTS_DEBUG("vid in tp:0x%04x, host:0x%04x", vid_in_tp, vid_in_host);
+	if (vid_in_tp != vid_in_host) {
+		FTS_INFO("vendor id in tp&host are different, no upgrade lic");
+		return false;
+	}
+
+	ret = fts_lic_get_ver_in_host(&initcode_ver_in_host);
+	if (ret < 0) {
+		FTS_ERROR("init code in host invalid");
+		return false;
+	}
+
+	ret = fts_lic_get_ver_in_tp(client, &initcode_ver_in_tp);
+	if (ret < 0) {
+		FTS_ERROR("read reg0xE4 fail");
+		return false;
+	}
+
+	FTS_DEBUG("lcd initial code version in tp:%x, host:%x",
+			  initcode_ver_in_tp, initcode_ver_in_host);
+	if (0xA5 == initcode_ver_in_tp) {
+		FTS_INFO("lcd init code ver is 0xA5, don't upgade init code");
+		return false;
+	} else if (0xFF == initcode_ver_in_tp) {
+		FTS_DEBUG("lcd init code in tp is invalid, need upgrade init code");
+		return true;
+	} else if (initcode_ver_in_tp < initcode_ver_in_host)
+		return true;
+	else
+		return false;
+}
+
+int fts_lic_upgrade(struct i2c_client *client, struct fts_upgrade *upg)
+{
+	int ret = 0;
+	bool hlic_upgrade = false;
+	int upgrade_count = 0;
+	u8 ver = 0;
+
+	FTS_INFO("lcd initial code auto upgrade function");
+	if ((!upg) || (!upg->func) || (!upg->func->lic_upgrade)) {
+		FTS_ERROR("lcd upgrade function is null");
+		return -EINVAL;
+	}
+
+	hlic_upgrade = fts_lic_need_upgrade(client);
+	FTS_INFO("lcd init code upgrade flag:%d", hlic_upgrade);
+	if (hlic_upgrade) {
+		FTS_INFO("lcd initial code need upgrade, upgrade begin...");
+		do {
+			FTS_INFO("lcd initial code upgrade times:%d", upgrade_count);
+			upgrade_count++;
+
+			ret = upg->func->lic_upgrade(client, upg->lic, upg->lic_length);
+			if (ret < 0) {
+				fts_fwupg_reset_in_boot(client);
+			} else {
+				fts_lic_get_ver_in_tp(client, &ver);
+				FTS_INFO("success upgrade to lcd initcode ver:%02x", ver);
+				break;
+			}
+		} while (upgrade_count < 2);
+	} else {
+		FTS_INFO("lcd initial code don't need upgrade");
+	}
+
+	return ret;
+}
+#endif /* FTS_AUTO_LIC_UPGRADE_EN */
+
+
+static int fts_param_get_ver_in_tp(struct i2c_client *client, u8 *ver)
+{
+	int ret = 0;
+
+	if (NULL == ver) {
+		FTS_ERROR("ver is NULL");
+		return -EINVAL;
+	}
+
+	ret = fts_i2c_read_reg(client, FTS_REG_IDE_PARA_VER_ID, ver);
+	if (ret < 0) {
+		FTS_ERROR("read fw param ver from tp fail");
+		return ret;
+	}
+
+	if ((0x00 == *ver) || (0xFF == *ver)) {
+		FTS_INFO("param version in tp invalid");
+		return -EIO;
+	}
+
+	return 0;
+}
+
+static int fts_param_get_ver_in_host(u8 *ver)
+{
+	struct fts_upgrade *upg = fwupgrade;
+
+	if ((!upg) || (!upg->func) || (!upg->fw) || (!ver)) {
+		FTS_ERROR("fts_data/upgrade/func/fw/ver is NULL");
+		return -EINVAL;
+	}
+
+	if (upg->fw_length < upg->func->paramcfgveroff) {
+		FTS_ERROR("fw len(%x) < paramcfg ver offset(%x)",
+				  upg->fw_length, upg->func->paramcfgveroff);
+		return -EINVAL;
+	}
+
+	FTS_INFO("fw paramcfg version offset:%x", upg->func->paramcfgveroff);
+	*ver = upg->fw[upg->func->paramcfgveroff];
+
+	if ((0x00 == *ver) || (0xFF == *ver)) {
+		FTS_INFO("param version in host invalid");
+		return -EIO;
+	}
+
+	return 0;
+}
+
+/************************************************************************
+ * fts_param_need_upgrade - check fw paramcfg need upgrade or not
+ *
+ * Return: return true if paramcfg need upgrade
+ ***********************************************************************/
+static bool fts_param_need_upgrade(struct i2c_client *client)
+{
+	int ret = 0;
+	u8 val = 0;
+	u8 ver_in_host = 0;
+	u8 ver_in_tp = 0;
+	bool fwvalid = false;
+
+	fwvalid = fts_fwupg_check_fw_valid(client);
+	if ( !fwvalid) {
+		FTS_INFO("fw is invalid, no upgrade paramcfg");
+		return false;
+	}
+
+	ret = fts_param_get_ver_in_host(&ver_in_host);
+	if (ret < 0) {
+		FTS_ERROR("param version in host invalid");
+		return false;
+	}
+
+	ret = fts_i2c_read_reg(client, FTS_REG_IDE_PARA_STATUS, &val);
+	if (ret < 0) {
+		FTS_ERROR("read IDE PARAM STATUS in tp fail");
+		return false;
+	}
+
+	if ((val & 0x80) != 0x80) {
+		FTS_INFO("no IDE VER in tp");
+		return false;
+	} else if ((val & 0x7F) != 0x00) {
+		FTS_INFO("IDE VER, param invalid, need upgrade param");
+		return true;
+	}
+
+	ret = fts_param_get_ver_in_tp(client, &ver_in_tp);
+	if (ret < 0) {
+		FTS_ERROR("get IDE param ver in tp fail");
+		return false;
+	}
+
+	FTS_INFO("fw paramcfg version in tp:%x, host:%x", ver_in_tp, ver_in_host);
+	if (ver_in_tp < ver_in_host) {
+		return true;
+	}
+
+	return false;
+}
+
+/************************************************************************
+ * fts_fwupg_get_ver_in_tp - read fw ver from tp register
+ *
+ * return 0 if success, otherwise return error code
+ ***********************************************************************/
+static int fts_fwupg_get_ver_in_tp(struct i2c_client *client, u8 *ver)
+{
+	int ret = 0;
+
+	if (NULL == ver) {
+		FTS_ERROR("ver is NULL");
+		return -EINVAL;
+	}
+
+	ret = fts_i2c_read_reg(client, FTS_REG_FW_VER, ver);
+	if (ret < 0) {
+		FTS_ERROR("read fw ver from tp fail");
+		return ret;
+	}
+
+	return 0;
+}
+
+/************************************************************************
+ * fts_fwupg_get_ver_in_host - read fw ver in host fw image
+ *
+ * return 0 if success, otherwise return error code
+ ***********************************************************************/
+static int fts_fwupg_get_ver_in_host(u8 *ver)
+{
+	struct fts_upgrade *upg = fwupgrade;
+
+	if ((!upg) || (!upg->func) || (!upg->fw) || (!ver)) {
+		FTS_ERROR("fts_data/upgrade/func/fw/ver is NULL");
+		return -EINVAL;
+	}
+
+	if (upg->fw_length < upg->func->fwveroff) {
+		FTS_ERROR("fw len(0x%0x) < fw ver offset(0x%x)",
+				  upg->fw_length, upg->func->fwveroff);
+		return -EINVAL;
+	}
+
+	FTS_INFO("fw version offset:0x%x", upg->func->fwveroff);
+	*ver = upg->fw[upg->func->fwveroff];
+	return 0;
+}
+
+/************************************************************************
+ * fts_fwupg_need_upgrade - check fw need upgrade or not
+ *
+ * Return: return true if fw need upgrade
+ ***********************************************************************/
+static bool fts_fwupg_need_upgrade(struct i2c_client *client)
+{
+	int ret = 0;
+	bool fwvalid = false;
+	u8 fw_ver_in_host = 0;
+	u8 fw_ver_in_tp = 0;
+
+	fwvalid = fts_fwupg_check_fw_valid(client);
+	if (fwvalid) {
+		ret = fts_fwupg_get_ver_in_host(&fw_ver_in_host);
+		if (ret < 0) {
+			FTS_ERROR("get fw ver in host fail");
+			return false;
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 		}
 	} else {
 		get_fw_i_flag = true;
 	}
 
+<<<<<<< HEAD
 	if (get_fw_i_flag) {
 		ret = fts_get_fw_file_via_i(upg);
 	}
@@ -1905,11 +3065,267 @@ static void fts_fwupg_work(struct work_struct *work)
 	}
 
 	upg->ts_data->fw_loading = 1;
+=======
+		ret = fts_fwupg_get_ver_in_tp(client, &fw_ver_in_tp);
+		if (ret < 0) {
+			FTS_ERROR("get fw ver in tp fail");
+			return false;
+		}
+
+		FTS_INFO("fw version in tp:%x, host:%x", fw_ver_in_tp, fw_ver_in_host);
+		if (fw_ver_in_tp < fw_ver_in_host) {
+			return true;
+		}
+	} else {
+		FTS_INFO("fw invalid, need upgrade fw");
+		return true;
+	}
+
+	return false;
+}
+
+/************************************************************************
+ * Name: fts_fw_upgrade
+ * Brief: fw upgrade main entry
+ * Input:
+ * Output:
+ * Return: return 0 if success, otherwise return error code
+ ***********************************************************************/
+int fts_fwupg_upgrade(struct i2c_client *client, struct fts_upgrade *upg)
+{
+	int ret = 0;
+	bool upgrade_flag = false;
+	int upgrade_count = 0;
+	u8 ver = 0;
+
+	FTS_INFO("fw auto upgrade function");
+	if ((NULL == upg) || (NULL == upg->func)) {
+		FTS_ERROR("upg/upg->func is null");
+		return -EINVAL;
+	}
+
+	upgrade_flag = fts_fwupg_need_upgrade(client);
+	FTS_INFO("fw upgrade flag:%d", upgrade_flag);
+	do {
+		upgrade_count++;
+		if (upgrade_flag) {
+			FTS_INFO("upgrade fw app(times:%d)", upgrade_count);
+			if (upg->func->upgrade) {
+				ret = upg->func->upgrade(client, upg->fw, upg->fw_length);
+				if (ret < 0) {
+					fts_fwupg_reset_in_boot(client);
+				} else {
+					fts_fwupg_get_ver_in_tp(client, &ver);
+					FTS_INFO("success upgrade to fw version %02x", ver);
+					
+					#ifdef SUPPORT_READ_TP_VERSION
+					fts_i2c_read_reg(client, FTS_REG_FW_VER, &regvalue);
+					memset(fw_version, 0, sizeof(fw_version));
+					sprintf(fw_version, "[FW]0x%02x,[IC]FT5446", regvalue);
+					init_tp_fm_info(0, fw_version, "O-film");
+					#endif
+					
+					break;
+				}
+			} else {
+				FTS_ERROR("upgrade func/upgrade is null, return immediately");
+				ret = -ENODATA;
+				break;
+			}
+		} else {
+			FTS_INFO("fw don't need upgrade");
+			if (upg->func->param_upgrade) {
+				if (fts_param_need_upgrade(client)) {
+					FTS_INFO("upgrade param area(times:%d)", upgrade_count);
+					ret = upg->func->param_upgrade(client, upg->fw, upg->fw_length);
+					if (ret < 0) {
+						fts_fwupg_reset_in_boot(client);
+					} else {
+						fts_param_get_ver_in_tp(client, &ver);
+						FTS_INFO("success upgrade to fw param version %02x", ver);
+						break;
+					}
+				} else {
+					FTS_INFO("param don't need upgrade");
+					break;
+				}
+			} else {
+				break;
+			}
+		}
+	} while (upgrade_count < 2);
+
+	return ret;
+}
+
+#if FTS_AUTO_UPGRADE_EN
+/************************************************************************
+ * fts_fwupg_auto_upgrade - upgrade main entry
+ ***********************************************************************/
+void fts_fwupg_auto_upgrade(struct fts_ts_data *ts_data)
+{
+	int ret = 0;
+	struct i2c_client *client = ts_data->client;
+	struct fts_upgrade *upg = fwupgrade;
+
+	FTS_INFO("********************FTS enter upgrade********************");
+
+	ret = fts_fwupg_upgrade(client, upg);
+	if (ret < 0)
+		FTS_ERROR("**********tp fw(app/param) upgrade failed**********");
+	else
+		FTS_INFO("**********tp fw(app/param) no upgrade/upgrade success**********");
+
+#if FTS_AUTO_LIC_UPGRADE_EN
+	ret = fts_lic_upgrade(client, upg);
+	if (ret < 0)
+		FTS_ERROR("**********lcd init code upgrade failed**********");
+	else
+		FTS_INFO("**********lcd init code no upgrade/upgrade success**********");
+#endif
+
+	FTS_INFO("********************FTS exit upgrade********************");
+}
+
+/*
+ * fts_fwupg_work - fw upgrade work function, handle upgrade
+ * @vid - u16 consit of module id and panel id
+ *
+ * return 0 if success, otherwise return error code
+ */
+int fts_fwupg_get_vendorid(struct fts_ts_data *ts_data, u16 *vid)
+{
+	int ret = 0;
+	bool fwvalid = false;
+	u8 vendor_id = 0;
+	u8 module_id = 0;
+	u32 fwcfg_addr = 0;
+	u8 cfgbuf[FTS_HEADER_LEN] = { 0 };
+	struct i2c_client *client = ts_data->client;
+	struct fts_upgrade *upg = fwupgrade;
+
+	FTS_INFO("read vendor id from tp");
+	if ((!upg) || (!upg->func) || (!vid)) {
+		FTS_ERROR("upgrade/func/vid is null");
+		return -EINVAL;
+	}
+
+	fwvalid = fts_fwupg_check_fw_valid(client);
+	if (fwvalid) {
+		ret = fts_i2c_read_reg(client, FTS_REG_VENDOR_ID, &vendor_id);
+		if (ts_data->ic_info.is_incell)
+			ret = fts_i2c_read_reg(client, FTS_REG_MODULE_ID, &module_id);
+	} else {
+		fwcfg_addr =  upg->func->fwcfgoff;
+		ret = fts_flash_read(client, fwcfg_addr, cfgbuf, FTS_HEADER_LEN);
+		vendor_id = cfgbuf[FTS_CONIFG_VENDORID_OFF];
+		if (ts_data->ic_info.is_incell) {
+			if ((cfgbuf[FTS_CONIFG_MODULEID_OFF] +
+				 cfgbuf[FTS_CONIFG_MODULEID_OFF + 1]) == 0xFF)
+				module_id = cfgbuf[FTS_CONIFG_MODULEID_OFF];
+		}
+	}
+
+	if (ret < 0) {
+		FTS_ERROR("fail to get vendor id from tp");
+		return ret;
+	}
+
+	*vid = ((u16)module_id << 8) + vendor_id;
+	return 0;
+}
+
+/*
+ * fts_fwupg_get_fw_file - get upgrade fw file in host driver
+ *
+ * return 0 if success, otherwise return error code
+ *
+ * call it to get upgrade file which include in host driver
+ * warning:
+ *   1. if more fw files, please modify FTS_GET_VENDOR_ID_NUM&
+ * FTS_VENDOR_ID
+ *   2. For incell ICs, vendor id = module id << 8 + panel id
+ *      For others, vendor id = 0x0000 + panel id
+ *   3. get fw file from reques_firmware(), this function unactive
+ */
+static int fts_fwupg_get_fw_file(struct fts_ts_data *ts_data)
+{
+	struct upgrade_fw *fw = &fw_list[0];
+	struct fts_upgrade *upg = fwupgrade;
+
+#if (FTS_GET_VENDOR_ID_NUM > 1)
+	int ret = 0;
+	int i = 0;
+	u16 vendor_id = 0;
+
+	/* support multi vendor, must read correct vendor id */
+	ret = fts_fwupg_get_vendorid(ts_data, &vendor_id);
+	if (ret < 0) {
+		FTS_ERROR("get vendor id failed");
+		return ret;
+	}
+	FTS_INFO("success to read vendor id:%04x", vendor_id);
+	for (i = 0; i < FTS_GET_VENDOR_ID_NUM; i++) {
+		fw = &fw_list[i];
+		if (vendor_id == fw->vendor_id) {
+			FTS_INFO("vendor id match, get fw file successfully");
+			break;
+		}
+	}
+	if (i >= FTS_GET_VENDOR_ID_NUM) {
+		FTS_ERROR("no vendor id match, don't get file");
+		return -ENODATA;
+	}
+#endif
+
+	if (upg) {
+		upg->fw = fw->fw_file;
+		upg->fw_length = fw->fw_len;
+		upg->lic = fw->fw_file;
+		upg->lic_length = fw->fw_len;
+
+		FTS_INFO("upgrade fw file len:%d", upg->fw_length);
+		if ((upg->fw_length < FTS_MIN_LEN)
+			|| (upg->fw_length > FTS_MAX_LEN_FILE)) {
+			FTS_ERROR("fw file len(%d) fail", upg->fw_length);
+			return -ENODATA;
+		}
+	}
+	return 0;
+}
+
+/*
+ * fts_fwupg_init_ic_detail - for ic detail initialaztion
+ */
+static void fts_fwupg_init_ic_detail(void)
+{
+	struct fts_upgrade *upg = fwupgrade;
+
+	if (upg && upg->func && upg->func->init) {
+		upg->func->init();
+	}
+}
+
+/*
+ * fts_fwupg_work - fw upgrade work function
+ * 1. get fw image/file
+ * 2. call upgrade main function(fts_fwupg_auto_upgrade)
+ */
+static void fts_fwupg_work(struct work_struct *work)
+{
+	int ret = 0;
+	struct fts_ts_data *ts_data = container_of(work,
+						          struct fts_ts_data, fwupg_work);
+
+	FTS_INFO("fw upgrade work function");
+	ts_data->fw_loading = 1;
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	fts_irq_disable();
 #if FTS_ESDCHECK_EN
 	fts_esdcheck_switch(DISABLE);
 #endif
 
+<<<<<<< HEAD
 	/* get fw */
 	ret = fts_fwupg_get_fw_file(upg);
 	if (ret < 0) {
@@ -1919,27 +3335,59 @@ static void fts_fwupg_work(struct work_struct *work)
 		fts_fwupg_init_ic_detail(upg);
 		/* run auto upgrade */
 		fts_fwupg_auto_upgrade(upg);
+=======
+	FTS_INFO("get upgrade fw file");
+	ret = fts_fwupg_get_fw_file(ts_data);
+	fts_fwupg_init_ic_detail();
+	if (ret < 0) {
+		FTS_ERROR("get file fail, can't upgrade");
+	} else {
+		/* run auto upgrade */
+		fts_fwupg_auto_upgrade(ts_data);
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	}
 
 #if FTS_ESDCHECK_EN
 	fts_esdcheck_switch(ENABLE);
 #endif
 	fts_irq_enable();
+<<<<<<< HEAD
 	upg->ts_data->fw_loading = 0;
 }
 
+=======
+	ts_data->fw_loading = 0;
+}
+
+/*****************************************************************************
+ *  Name: fts_fwupg_init
+ *  Brief: upgrade function initialization
+ *  Input:
+ *  Output:
+ *  Return: return 0 if success, otherwise return error code
+ *****************************************************************************/
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 int fts_fwupg_init(struct fts_ts_data *ts_data)
 {
 	int i = 0;
 	int j = 0;
+<<<<<<< HEAD
 	int ic_stype = 0;
+=======
+	int ic_stype = ts_data->ic_info.ids.type;
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	struct upgrade_func *func = upgrade_func_list[0];
 	int func_count = sizeof(upgrade_func_list) / sizeof(upgrade_func_list[0]);
 
 	FTS_INFO("fw upgrade init function");
 
+<<<<<<< HEAD
 	if (!ts_data || !ts_data->ts_workqueue) {
 		FTS_ERROR("ts_data/workqueue is NULL, can't run upgrade function");
+=======
+	if (NULL == ts_data->ts_workqueue) {
+		FTS_ERROR("fts workqueue is NULL, can't run upgrade function");
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 		return -EINVAL;
 	}
 
@@ -1954,7 +3402,10 @@ int fts_fwupg_init(struct fts_ts_data *ts_data)
 		return -ENOMEM;
 	}
 
+<<<<<<< HEAD
 	ic_stype = ts_data->ic_info.ids.type;
+=======
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	if (1 == func_count) {
 		fwupgrade->func = func;
 	} else {
@@ -1972,6 +3423,7 @@ int fts_fwupg_init(struct fts_ts_data *ts_data)
 	}
 
 	if (NULL == fwupgrade->func) {
+<<<<<<< HEAD
 		FTS_ERROR("no upgrade function match, can't upgrade");
 		kfree(fwupgrade);
 		fwupgrade = NULL;
@@ -1979,16 +3431,153 @@ int fts_fwupg_init(struct fts_ts_data *ts_data)
 	}
 
 	fwupgrade->ts_data = ts_data;
+=======
+		FTS_ERROR("no upgrade functin match, can't upgrade");
+		return -ENODATA;
+	}
+
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 	INIT_WORK(&ts_data->fwupg_work, fts_fwupg_work);
 	queue_work(ts_data->ts_workqueue, &ts_data->fwupg_work);
 
 	return 0;
 }
+<<<<<<< HEAD
 
+=======
+#endif
+
+//add lockdowninfo by likang @20171010
+u8 fts_LockDownInfo_get(struct i2c_client *client,char *pProjectCode)
+{
+	u8 reg_val[10] = {0};
+	u32 i = 0;
+	u8 j = 0;
+	u8 auc_i2c_write_buf[4];
+	int i_ret;
+	//u32 temp;
+	u8 uc_tp_vendor_id;//,uc_tp_fm_ver;
+
+	fts_i2c_read_reg(client, FTS_REG_VENDOR_ID, &uc_tp_vendor_id);
+	FTS_DEBUG("ft5446_fts_LockDownInfo_get, uc_tp_vendor_id=%x\n", uc_tp_vendor_id);
+
+	i_ret = fts_i2c_hid2std(client);
+	if (i_ret == 0)
+	{
+		FTS_ERROR("HidI2c change to StdI2c fail ! \n");
+	}
+	for (i = 0; i < FTS_UPGRADE_LOOP; i++)
+	{
+		/********* Step 1:Reset  CTPM *****/
+		fts_i2c_write_reg(client, 0xfc, FTS_UPGRADE_AA);
+		msleep(30);
+		fts_i2c_write_reg(client, 0xfc, FTS_UPGRADE_55);
+		msleep(200);
+		/********* Step 2:Enter upgrade mode *****/
+		i_ret = fts_i2c_hid2std(client);
+		if (i_ret == 0)
+		{
+			FTS_ERROR("HidI2c change to StdI2c fail ! \n");
+			/*continue;*/
+		}
+		msleep(10);
+		auc_i2c_write_buf[0] = FTS_UPGRADE_55;
+		auc_i2c_write_buf[1] = FTS_UPGRADE_AA;
+		i_ret = fts_i2c_write(client, auc_i2c_write_buf, 2);
+		if (i_ret < 0)
+		{
+			FTS_ERROR("failed writing  0x55 and 0xaa ! \n");
+			continue;
+		}
+		/********* Step 3:check READ-ID ***********************/
+		msleep(10);
+		auc_i2c_write_buf[0] = 0x90;
+		auc_i2c_write_buf[1] = auc_i2c_write_buf[2] = auc_i2c_write_buf[3] = 0x00;
+		reg_val[0] = reg_val[1] = 0x00;
+		fts_i2c_read(client, auc_i2c_write_buf, 4, reg_val, 2);
+		if (reg_val[0] == 0x54 && reg_val[1] == 0x2e)
+		{
+			FTS_DEBUG("[FTS] Step 3: READ OK CTPM ID,ID1 = 0x%x,ID2 = 0x%x\n", reg_val[0], reg_val[1]);
+			break;
+		}
+		else
+		{
+			dev_err(&client->dev, "[FTS] Step 3: CTPM ID,ID1 = 0x%x,ID2 = 0x%x\n", reg_val[0], reg_val[1]);
+			continue;
+		}
+	}
+	if (i >= FTS_UPGRADE_LOOP)
+	{
+		FTS_DEBUG("ft5446_fts_LockDownInfo_get, i=%d\n", i);
+		return -1;
+	}
+	/********* Step 4: read project code from app param area ***********************/
+	msleep(10);
+
+	FTS_DEBUG("ft5446_fts_LockDownInfo_get, msleep(10)\n");
+	/* read project code */
+	auc_i2c_write_buf[0] = 0x03;
+	auc_i2c_write_buf[1] = 0x00;
+
+	for(i = 0;i < FTS_UPGRADE_LOOP; i++)
+	{
+		auc_i2c_write_buf[2] = 0xd7;//0x7c;//0xd7
+		auc_i2c_write_buf[3] = 0xa0;//0x20;//0xa0
+		i_ret = fts_i2c_write(client, auc_i2c_write_buf, 4);
+		if (i_ret < 0)
+		{
+			FTS_ERROR( "[FTS] Step 4: read lcm id from flash error when i2c write, i_ret = %d\n", i_ret);
+			continue;
+		}
+
+		msleep(10);
+
+		i_ret = fts_i2c_read(client, auc_i2c_write_buf, 0, reg_val, 8);
+		if (i_ret < 0)
+		{
+			FTS_DEBUG( "[FTS] Step 4: read lcm id from flash error when i2c write, i_ret = %d\n", i_ret);
+			continue;
+		}
+
+		for(j = 0; j < 8; j++)
+		{
+			FTS_DEBUG("%s: REG VAL = 0x%02x,j=%d\n", __func__,reg_val[j],j);
+		}
+
+		sprintf(pProjectCode, "%02x%02x%02x%02x%02x%02x%02x%02x", \
+			reg_val[0], reg_val[1], reg_val[2], reg_val[3], reg_val[4], reg_val[5], reg_val[6], reg_val[7]);
+		FTS_DEBUG("%s:%s\n", __func__,pProjectCode);
+		break;
+	}
+
+	msleep(50);
+	/********* Step 5: reset the new FW ***********************/
+	FTS_DEBUG("Step 5: reset the new FW\n");
+	auc_i2c_write_buf[0] = 0x07;
+	fts_i2c_write(client, auc_i2c_write_buf, 1);
+	msleep(200);                        /* make sure CTP startup normally */
+	i_ret = fts_i2c_hid2std(client);   /* Android to Std i2c. */
+	if (i_ret == 0)
+	{
+		FTS_ERROR("HidI2c change to StdI2c fail ! \n");
+	}
+	msleep(10);
+	return reg_val[1];
+}//add end by likang @20171010
+#if FTS_AUTO_UPGRADE_EN
+/*****************************************************************************
+ *  Name: fts_fwupg_exit
+ *  Brief:
+ *  Input:
+ *  Output:
+ *  Return:
+ *****************************************************************************/
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
 int fts_fwupg_exit(struct fts_ts_data *ts_data)
 {
 	FTS_FUNC_ENTER();
 	if (fwupgrade) {
+<<<<<<< HEAD
 		if (fwupgrade->fw_from_request) {
 			vfree(fwupgrade->fw);
 			fwupgrade->fw = NULL;
@@ -2000,3 +3589,13 @@ int fts_fwupg_exit(struct fts_ts_data *ts_data)
 	FTS_FUNC_EXIT();
 	return 0;
 }
+=======
+		kfree(fwupgrade);
+	}
+	FTS_FUNC_EXIT();
+
+	return 0;
+}
+
+#endif  /* #if FTS_AUTO_UPGRADE_EN */
+>>>>>>> 7ccad13b16fa (drivers: input: Import FTS touchscreen driver and its minimal changes from Xiaomi)
