@@ -1,5 +1,21 @@
+<<<<<<< HEAD
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (c) 2008-2018, 2020-2021, The Linux Foundation. All rights reserved. */
+=======
+/* Copyright (c) 2008-2018,2020, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 
 #ifndef MDSS_FB_H
 #define MDSS_FB_H
@@ -332,6 +348,8 @@ struct msm_fb_data_type {
 	struct task_struct *disp_thread;
 	atomic_t commits_pending;
 	atomic_t kickoff_pending;
+	atomic_t resume_pending;
+	wait_queue_head_t resume_wait_q;
 	wait_queue_head_t commit_wait_q;
 	wait_queue_head_t idle_wait_q;
 	wait_queue_head_t kickoff_wait_q;

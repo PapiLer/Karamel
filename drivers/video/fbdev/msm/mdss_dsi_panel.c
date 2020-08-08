@@ -1,6 +1,21 @@
+<<<<<<< HEAD
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2012-2021, The Linux Foundation. All rights reserved. */
 /* Copyright (C) 2019 XiaoMi, Inc. */
+=======
+/* Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 
 #include <linux/module.h>
 #include <linux/interrupt.h>
@@ -44,6 +59,7 @@ extern void xiaomi_sdm439_ilitek_call_resume_work(void);
 
 #define VSYNC_DELAY msecs_to_jiffies(17)
 
+<<<<<<< HEAD
 static bool display_on = true;
 
 bool is_display_on(void)
@@ -51,6 +67,9 @@ bool is_display_on(void)
 	return display_on;
 }
 
+=======
+struct mdss_dsi_ctrl_pdata *ctrl_pdata_whitepoint;
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 DEFINE_LED_TRIGGER(bl_led_trigger);
 
 void mdss_dsi_panel_pwm_cfg(struct mdss_dsi_ctrl_pdata *ctrl)
@@ -182,6 +201,48 @@ int mdss_dsi_panel_cmd_read(struct mdss_dsi_ctrl_pdata *ctrl, char cmd0,
 	return mdss_dsi_cmdlist_put(ctrl, &cmdreq);
 }
 
+static char dcs_reg[2] = {0x00, 0x00}; /* DTYPE_DCS_READ */
+static struct dsi_cmd_desc dcs_read_reg = {
+	{DTYPE_DCS_READ, 1, 0, 1, 5, sizeof(dcs_reg)},
+	dcs_reg
+};
+
+int mdss_dsi_read_reg(struct mdss_dsi_ctrl_pdata *ctrl,char cmd0,int *val0,int *val1)
+{
+	struct dcs_cmd_req cmdreq;
+	struct mdss_panel_info *pinfo;
+	char rbuf[3];
+	int len = sizeof(rbuf);
+	printk("guorui:%s,reg 0x%x\n",__func__,cmd0);
+	if(ctrl == NULL)
+		ctrl = ctrl_pdata_whitepoint;
+
+	pinfo = &(ctrl->panel_data.panel_info);
+	if (pinfo->dcs_cmd_by_left) {
+		if (ctrl->ndx != DSI_CTRL_LEFT)
+			return -EINVAL;
+	}
+
+	dcs_reg[0] = cmd0;
+	memset(&cmdreq, 0, sizeof(cmdreq));
+	cmdreq.cmds = &dcs_read_reg;
+	cmdreq.cmds_cnt = 1;
+	cmdreq.flags = CMD_REQ_RX | CMD_REQ_COMMIT | CMD_REQ_HS_MODE;
+	cmdreq.rlen = len;
+	cmdreq.rbuf = rbuf;
+	cmdreq.cb = NULL; /* call back */
+	/*
+	 * blocked here, until call back called
+	 */
+
+	mdss_dsi_cmdlist_put(ctrl, &cmdreq);
+	*val0 = rbuf[0];
+	*val1 = rbuf[1];
+
+	printk("guorui:%x %x %x \n",rbuf[0],rbuf[1],rbuf[2]);
+	return 0;
+}
+
 static void mdss_dsi_panel_apply_settings(struct mdss_dsi_ctrl_pdata *ctrl,
 			struct dsi_panel_cmds *pcmds)
 {
@@ -202,8 +263,12 @@ static void mdss_dsi_panel_apply_settings(struct mdss_dsi_ctrl_pdata *ctrl,
 	mdss_dsi_cmdlist_put(ctrl, &cmdreq);
 }
 
+<<<<<<< HEAD
 
 static void mdss_dsi_panel_cmds_send(struct mdss_dsi_ctrl_pdata *ctrl,
+=======
+void mdss_dsi_panel_cmds_send(struct mdss_dsi_ctrl_pdata *ctrl,
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 			struct dsi_panel_cmds *pcmds, u32 flags)
 {
 	struct dcs_cmd_req cmdreq;
@@ -233,11 +298,14 @@ static void mdss_dsi_panel_cmds_send(struct mdss_dsi_ctrl_pdata *ctrl,
 }
 
 static char led_pwm1[2] = {0x51, 0x0};	/* DTYPE_DCS_WRITE1 */
+static char led_pwm2[3] = {0x51, 0x0f, 0x00};/* DTYPE_DCS_LWRITE */
+
 static struct dsi_cmd_desc backlight_cmd = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 1, sizeof(led_pwm1)},
 	led_pwm1
 };
 
+<<<<<<< HEAD
 #if IS_ENABLED(CONFIG_MACH_FAMILY_XIAOMI_ULYSSE)
 static char xiaomi_ulysse_led_pwm2[3] = {0x51, 0x0 ,0x0};	/* DTYPE_DCS_WRITE1 */
 static struct dsi_cmd_desc xiaomi_ulysse_backlight_cmd2 = {
@@ -246,6 +314,12 @@ static struct dsi_cmd_desc xiaomi_ulysse_backlight_cmd2 = {
 };
 #endif
 
+=======
+static struct dsi_cmd_desc backlight_cmd_ILI9881 = {
+	{DTYPE_DCS_LWRITE, 1, 0, 0, 1, sizeof(led_pwm2)},
+	led_pwm2
+};
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 static void mdss_dsi_panel_bklt_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 {
 	struct dcs_cmd_req cmdreq;
@@ -258,6 +332,16 @@ static void mdss_dsi_panel_bklt_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 	}
 
 	pr_debug("%s: level=%d\n", __func__, level);
+	if (!strncmp(ctrl->panel_data.panel_info.panel_name, "shenchao ili9881", 16)) {
+		led_pwm2[1] = (unsigned char)((level >> 8) & 0x0f);
+		led_pwm2[2] = (unsigned char)(level & 0xff);
+		memset(&cmdreq, 0, sizeof(cmdreq));
+		cmdreq.cmds = &backlight_cmd_ILI9881;
+	} else {
+		led_pwm1[1] = (unsigned char)level;
+		memset(&cmdreq, 0, sizeof(cmdreq));
+		cmdreq.cmds = &backlight_cmd;
+	}
 
 	led_pwm1[1] = (unsigned char)level;
 
@@ -288,6 +372,59 @@ static void mdss_dsi_panel_bklt_dcs(struct mdss_dsi_ctrl_pdata *ctrl, int level)
 	mdss_dsi_cmdlist_put(ctrl, &cmdreq);
 }
 
+<<<<<<< HEAD
+=======
+static void mdss_dsi_panel_set_idle_mode(struct mdss_panel_data *pdata,
+							bool enable)
+{
+	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
+
+	if (pdata == NULL) {
+		pr_err("%s: Invalid input data\n", __func__);
+		return;
+	}
+
+	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
+						panel_data);
+
+	pr_debug("%s: Idle (%d->%d)\n", __func__, ctrl->idle, enable);
+
+	if (ctrl->idle == enable)
+		return;
+
+	MDSS_XLOG(ctrl->idle, enable);
+	if (enable) {
+		if (ctrl->idle_on_cmds.cmd_cnt) {
+			mdss_dsi_panel_cmds_send(ctrl, &ctrl->idle_on_cmds,
+					CMD_REQ_COMMIT);
+			ctrl->idle = true;
+			pr_debug("Idle on\n");
+		}
+	} else {
+		if (ctrl->idle_off_cmds.cmd_cnt) {
+			mdss_dsi_panel_cmds_send(ctrl, &ctrl->idle_off_cmds,
+					CMD_REQ_COMMIT);
+			ctrl->idle = false;
+			pr_debug("Idle off\n");
+		}
+	}
+}
+
+static bool mdss_dsi_panel_get_idle_mode(struct mdss_panel_data *pdata)
+
+{
+	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
+
+	if (pdata == NULL) {
+		pr_err("%s: Invalid input data\n", __func__);
+		return 0;
+	}
+	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
+						panel_data);
+	return ctrl->idle;
+}
+
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 static int mdss_dsi_request_gpios(struct mdss_dsi_ctrl_pdata *ctrl_pdata)
 {
 	int rc = 0;
@@ -1086,6 +1223,7 @@ static void mdss_dsi_panel_switch_mode(struct mdss_panel_data *pdata,
 		mdss_dsi_panel_dsc_pps_send(ctrl_pdata, &pdata->panel_info);
 }
 
+<<<<<<< HEAD
 #if IS_ENABLED(CONFIG_MFD_TI_LMU_MI439)
 extern int xiaomi_sdm439_lm3697_set_brightness(int brightness);
 #endif
@@ -1093,11 +1231,18 @@ extern int xiaomi_sdm439_lm3697_set_brightness(int brightness);
 extern int xiaomi_sdm439_ktd3137_brightness_set(int brightness);
 #endif
 
+=======
+extern int  first_ce_state,first_cabc_state,first_srgb_state,first_cabc_movie_state,first_cabc_still_state;
+extern int mdss_first_set_feature(struct mdss_panel_data *pdata,int first_ce_state,int first_cabc_state,int first_srgb_state,
+                                                                                   int first_cabc_movie_state,int first_cabc_still_state);
+extern bool first_set_bl;
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 							u32 bl_level)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
 	struct mdss_dsi_ctrl_pdata *sctrl = NULL;
+	static u32 old_bl_level = 0;
 
 	if (pdata == NULL) {
 		pr_err("%s: Invalid input data\n", __func__);
@@ -1121,17 +1266,27 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 	 * for the backlight brightness. If the brightness is less
 	 * than it, the controller can malfunction.
 	 */
+<<<<<<< HEAD
 	pr_debug("%s: bl_level:%d\n", __func__, bl_level);
 
 	/* do not allow backlight to change when panel in disable mode */
 	if (pdata->panel_disable_mode && (bl_level != 0))
 		return;
+=======
+	pr_err("%s: bl_level:%d\n", __func__, bl_level);
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 
 	if ((bl_level < pdata->panel_info.bl_min) && (bl_level != 0))
 		bl_level = pdata->panel_info.bl_min;
 
+<<<<<<< HEAD
 	/* enable the backlight gpio if present */
 	mdss_dsi_bl_gpio_ctrl(pdata, bl_level);
+=======
+	if(bl_level==0 || (old_bl_level==0 && bl_level!=0)){
+		pr_info("%s, bl_level=%d\n",__func__,bl_level);
+	}
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 
 	switch (ctrl_pdata->bklt_ctrl) {
 	case BL_WLED:
@@ -1184,6 +1339,21 @@ static void mdss_dsi_panel_bl_ctrl(struct mdss_panel_data *pdata,
 			__func__);
 		break;
 	}
+	if (bl_level != 0) {
+		first_set_bl = true;
+		if(mdss_first_set_feature(pdata,first_ce_state,first_cabc_state,first_srgb_state,first_cabc_movie_state,first_cabc_still_state)) {
+ 			pr_err("%s first set feature fail ! \n", __func__);
+ 		} else {
+ 			first_ce_state=-1;
+ 			first_cabc_state=-1;
+ 			first_srgb_state=-1;
+			first_cabc_movie_state=-1;
+			first_cabc_still_state=-1;
+ 		}
+	} else {
+		first_set_bl = false;
+	}
+	old_bl_level = bl_level;
 }
 
 static int mdss_dsi_panel_livedisplay_check_panel_alive(struct mdss_panel_data *pdata)
@@ -1404,11 +1574,22 @@ static int mdss_dsi_panel_set_reading_mode(struct mdss_panel_data *pdata, u32 re
 	return mdss_dsi_panel_livedisplay_check_panel_alive(pdata);
 }
 
+extern int ce_state;
+extern int cabc_state;
+extern int srgb_state;
+extern int ce_mode_status;
+extern int cabc_movie_state;
+extern int cabc_still_state;
 static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
 	struct mdss_panel_info *pinfo;
 	struct dsi_panel_cmds *on_cmds;
+	struct dsi_panel_cmds *ce_on_cmds;
+	struct dsi_panel_cmds *cabc_on_cmds;
+	struct dsi_panel_cmds *srgb_on_cmds;
+	struct dsi_panel_cmds *cabc_movie_on_cmds;
+	struct dsi_panel_cmds *cabc_still_on_cmds;
 	int ret = 0;
 
 	if (pdata == NULL) {
@@ -1422,7 +1603,7 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
-	pr_debug("%s: ndx=%d\n", __func__, ctrl->ndx);
+	pr_info("%s: ndx=%d\n", __func__, ctrl->ndx);
 
 	if (pinfo->dcs_cmd_by_left) {
 		if (ctrl->ndx != DSI_CTRL_LEFT)
@@ -1430,17 +1611,23 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	}
 
 	on_cmds = &ctrl->on_cmds;
+	cabc_on_cmds = &ctrl->cabc_on_cmds;
+	ce_on_cmds = &ctrl->ce_on_cmds;
+	srgb_on_cmds = &ctrl->srgb_on_cmds;
+	cabc_movie_on_cmds = &ctrl->cabc_movie_on_cmds;
+	cabc_still_on_cmds = &ctrl->cabc_still_on_cmds;
 
 	if ((pinfo->mipi.dms_mode == DYNAMIC_MODE_SWITCH_IMMEDIATE) &&
 			(pinfo->mipi.boot_mode != pinfo->mipi.mode))
 		on_cmds = &ctrl->post_dms_on_cmds;
 
-	pr_debug("%s: ndx=%d cmd_cnt=%d\n", __func__,
+	pr_info("%s: ndx=%d cmd_cnt=%d\n", __func__,
 				ctrl->ndx, on_cmds->cmd_cnt);
 
 	if (on_cmds->cmd_cnt)
 		mdss_dsi_panel_cmds_send(ctrl, on_cmds, CMD_REQ_COMMIT);
 
+<<<<<<< HEAD
 #if IS_ENABLED(CONFIG_MACH_XIAOMI_SDM439)
 	if (xiaomi_sdm439_mach_get()) {
 		if (ctrl->xiaomi_sdm439_default_gamma_cmds.cmd_cnt)
@@ -1451,6 +1638,38 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 			mdss_dsi_panel_cmds_send(ctrl, &ctrl->xiaomi_sdm439_CABC_off_cmds, CMD_REQ_COMMIT);
 	}
 #endif
+=======
+	if(ce_state == 1){
+	   if (ce_on_cmds->cmd_cnt){
+	        mdss_dsi_panel_cmds_send(ctrl,ce_on_cmds, CMD_REQ_COMMIT);
+                ce_mode_status = 1;
+		pr_info("set ce on\n");
+	       }	
+	}
+
+	if(11 == srgb_state){
+	   if (srgb_on_cmds->cmd_cnt)
+	       mdss_dsi_panel_cmds_send(ctrl,srgb_on_cmds, CMD_REQ_COMMIT);
+	}
+
+	if(cabc_state == 1){
+		if (cabc_on_cmds->cmd_cnt)
+	       mdss_dsi_panel_cmds_send(ctrl,cabc_on_cmds, CMD_REQ_COMMIT);
+		pr_info("set cabc on\n");
+	}
+
+	if(cabc_movie_state == 1){
+		if (cabc_movie_on_cmds->cmd_cnt)
+	       mdss_dsi_panel_cmds_send(ctrl,cabc_movie_on_cmds, CMD_REQ_COMMIT);
+		pr_info("set cabc movie on\n");
+	}
+
+	if(cabc_still_state == 1){
+		if (cabc_still_on_cmds->cmd_cnt)
+	       mdss_dsi_panel_cmds_send(ctrl,cabc_still_on_cmds, CMD_REQ_COMMIT);
+		pr_info("set cabc still on\n");
+	}
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 
 	if (pinfo->compression_mode == COMPRESSION_DSC)
 		mdss_dsi_panel_dsc_pps_send(ctrl, pinfo);
@@ -1471,7 +1690,7 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	}
 
 end:
-	pr_debug("%s:-\n", __func__);
+	pr_info("%s:-\n", __func__);
 	return ret;
 }
 
@@ -1530,7 +1749,7 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 	ctrl = container_of(pdata, struct mdss_dsi_ctrl_pdata,
 				panel_data);
 
-	pr_debug("%s: ctrl=%pK ndx=%d\n", __func__, ctrl, ctrl->ndx);
+	pr_info("%s: ctrl=%pK ndx=%d\n", __func__, ctrl, ctrl->ndx);
 
 	if (pinfo->dcs_cmd_by_left) {
 		if (ctrl->ndx != DSI_CTRL_LEFT)
@@ -1546,7 +1765,13 @@ static int mdss_dsi_panel_off(struct mdss_panel_data *pdata)
 	}
 
 end:
+<<<<<<< HEAD
 	pr_debug("%s:-\n", __func__);
+=======
+	/* clear idle state */
+	ctrl->idle = false;
+	pr_info("%s:-\n", __func__);
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 	return 0;
 }
 
@@ -2318,8 +2543,18 @@ static bool mdss_dsi_cmp_panel_reg_v2(struct mdss_dsi_ctrl_pdata *ctrl)
 	for (i = 0; i < ctrl->status_cmds.cmd_cnt; i++)
 		len += lenp[i];
 
+	for (i = 0; i < len; i++) {
+		pr_debug("[%i] return:0x%x status:0x%x\n",
+			i, (unsigned int)ctrl->return_buf[i],
+			(unsigned int)ctrl->status_value[j + i]);
+		MDSS_XLOG(ctrl->ndx, ctrl->return_buf[i],
+			ctrl->status_value[j + i]);
+		j += len;
+	}
+
 	for (j = 0; j < ctrl->groups; ++j) {
 		for (i = 0; i < len; ++i) {
+<<<<<<< HEAD
 #if IS_ENABLED(CONFIG_MACH_FAMILY_XIAOMI_ULYSSE)
 			if (xiaomi_msm8937_mach_get_family() == XIAOMI_MSM8937_MACH_FAMILY_ULYSSE) {
 				if (ctrl->return_buf[0] !=
@@ -2342,6 +2577,8 @@ static bool mdss_dsi_cmp_panel_reg_v2(struct mdss_dsi_ctrl_pdata *ctrl)
 				(unsigned int)ctrl->status_value[group + i]);
 			MDSS_XLOG(ctrl->ndx, ctrl->return_buf[i],
 					ctrl->status_value[group + i]);
+=======
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 			if (ctrl->return_buf[i] !=
 				ctrl->status_value[group + i])
 				break;
@@ -2712,7 +2949,23 @@ static int mdss_dsi_parse_panel_features(struct device_node *np,
 
 	pinfo = &ctrl->panel_data.panel_info;
 
+<<<<<<< HEAD
 	mdss_dsi_parse_partial_update_caps(np, ctrl);
+=======
+	pinfo->partial_update_supported = of_property_read_bool(np,
+		"qcom,partial-update-enabled");
+	if (pinfo->mipi.mode == DSI_CMD_MODE) {
+		pinfo->partial_update_enabled = pinfo->partial_update_supported;
+		pr_info("%s: partial_update_enabled=%d\n", __func__,
+					pinfo->partial_update_enabled);
+		ctrl->set_col_page_addr = mdss_dsi_set_col_page_addr;
+		if (pinfo->partial_update_enabled) {
+			pinfo->partial_update_roi_merge =
+					of_property_read_bool(np,
+					"qcom,partial-update-roi-merge");
+		}
+	}
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 
 	pinfo->dcs_cmd_by_left = of_property_read_bool(np,
 		"qcom,dcs-cmd-by-left");
@@ -3715,6 +3968,36 @@ static int mdss_panel_parse_dt(struct device_node *np,
 	rc = of_property_read_u32(np, "qcom,adjust-timer-wakeup-ms", &tmp);
 	pinfo->adjust_timer_delay_ms = (!rc ? tmp : 0);
 
+	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->ce_on_cmds,
+		"qcom,mdss-dsi-ce-on-command", "qcom,mdss-dsi-ce-on-command-state");
+
+	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->ce_off_cmds,
+		"qcom,mdss-dsi-ce-off-command", "qcom,mdss-dsi-ce-off-command-state");
+
+	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->srgb_on_cmds,
+		"qcom,mdss-dsi-srgb-on-command", "qcom,mdss-dsi-srgb-on-command-state");
+
+	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->srgb_off_cmds,
+		"qcom,mdss-dsi-srgb-off-command", "qcom,mdss-dsi-srgb-off-command-state");
+
+	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->cabc_on_cmds,
+		"qcom,mdss-dsi-cabc-on-command", "qcom,mdss-dsi-cabc-on-command-state");
+
+	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->cabc_off_cmds,
+		"qcom,mdss-dsi-cabc-off-command", "qcom,mdss-dsi-cabc-off-command-state");
+
+	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->cabc_movie_on_cmds,
+		"qcom,mdss-dsi-cabc-movie-on-command", "qcom,mdss-dsi-cabc-movie-on-command-state");
+
+	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->cabc_movie_off_cmds,
+		"qcom,mdss-dsi-cabc-movie-off-command", "qcom,mdss-dsi-cabc-movie-off-command-state");
+
+	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->cabc_still_on_cmds,
+		"qcom,mdss-dsi-cabc-still-on-command", "qcom,mdss-dsi-cabc-still-on-command-state");
+
+	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->cabc_still_off_cmds,
+		"qcom,mdss-dsi-cabc-still-off-command", "qcom,mdss-dsi-cabc-still-off-command-state");
+
 	pinfo->mipi.force_clk_lane_hs = of_property_read_bool(np,
 		"qcom,mdss-dsi-force-clock-lane-hs");
 
@@ -3759,6 +4042,69 @@ error:
 	return -EINVAL;
 }
 
+char g_lcd_id[128];
+static ssize_t msm_fb_lcd_name(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	ssize_t ret = 0;
+	sprintf(buf, "%s\n", g_lcd_id);
+	ret = strlen(buf) + 1;
+	return ret;
+}
+
+static DEVICE_ATTR(lcd_name,0664,msm_fb_lcd_name,NULL);
+static struct kobject *msm_lcd_name;
+static int msm_lcd_name_create_sysfs(void)
+{
+	int ret;
+	msm_lcd_name=kobject_create_and_add("android_lcd",NULL);
+
+	if(msm_lcd_name==NULL){
+		pr_info("msm_lcd_name_create_sysfs_ failed\n");
+		ret=-ENOMEM;
+		return ret;
+	}
+
+	ret=sysfs_create_file(msm_lcd_name,&dev_attr_lcd_name.attr);
+	if(ret){
+		pr_info("%s failed \n",__func__);
+		kobject_del(msm_lcd_name);
+	}
+	return 0;
+}
+
+static ssize_t mdss_fb_get_whitepoint(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct mdss_dsi_ctrl_pdata *ctrl = NULL;
+	int val0 =0;
+	int val1 = 0;
+	ssize_t ret = 0;
+
+	mdss_dsi_read_reg(ctrl,0xa1,&val0,&val1);
+	ret = snprintf(buf, PAGE_SIZE, "val0=%d,val1=%d\n",val0,val1);
+
+	return ret;
+}
+
+static DEVICE_ATTR(whitepoint, 0644, mdss_fb_get_whitepoint,NULL );
+static struct kobject *msm_whitepoint;
+static int msm_whitepoint_create_sysfs(void){
+   int ret;
+   msm_whitepoint=kobject_create_and_add("android_whitepoint",NULL);
+   if(msm_whitepoint==NULL){
+     pr_info("msm_whitepoint_create_sysfs_ failed\n");
+     ret=-ENOMEM;
+     return ret;
+   }
+   ret=sysfs_create_file(msm_whitepoint,&dev_attr_whitepoint.attr);
+   if(ret){
+    pr_info("%s failed \n",__func__);
+    kobject_del(msm_whitepoint);
+   }
+   return 0;
+}
+
 int mdss_dsi_panel_init(struct device_node *node,
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata,
 	int ndx)
@@ -3784,6 +4130,10 @@ int mdss_dsi_panel_init(struct device_node *node,
 		pr_info("%s: Panel Name = %s\n", __func__, panel_name);
 		strlcpy(&pinfo->panel_name[0], panel_name, MDSS_MAX_PANEL_LEN);
 	}
+
+	/*add for device name node */
+	strcpy(g_lcd_id,panel_name);
+
 	rc = mdss_panel_parse_dt(node, ctrl_pdata);
 	if (rc) {
 		pr_err("%s:%d panel dt parse failed\n", __func__, __LINE__);
@@ -3807,6 +4157,14 @@ int mdss_dsi_panel_init(struct device_node *node,
 	ctrl_pdata->panel_data.apply_display_setting =
 			mdss_dsi_panel_apply_display_setting;
 	ctrl_pdata->switch_mode = mdss_dsi_panel_switch_mode;
+<<<<<<< HEAD
+=======
+	ctrl_pdata->panel_data.get_idle = mdss_dsi_panel_get_idle_mode;
+
+	ctrl_pdata_whitepoint = ctrl_pdata;
+	msm_lcd_name_create_sysfs();
+	msm_whitepoint_create_sysfs();
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 
 	return 0;
 }

@@ -1,6 +1,22 @@
+<<<<<<< HEAD
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2012-2021, The Linux Foundation. All rights reserved. */
 /* Copyright (C) 2019 XiaoMi, Inc. */
+=======
+/* Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 
 #include <linux/module.h>
 #include <linux/interrupt.h>
@@ -470,7 +486,12 @@ static int mdss_dsi_panel_power_ctrl(struct mdss_panel_data *pdata,
 	}
 
 	pinfo = &pdata->panel_info;
+<<<<<<< HEAD
 	pr_debug("%s: cur_power_state=%d req_power_state=%d\n", __func__,
+=======
+	pr_info("%pS-->%s: cur_power_state=%d req_power_state=%d\n",
+		__builtin_return_address(0), __func__,
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 		pinfo->panel_power_state, power_state);
 
 	if (pinfo->panel_power_state == power_state) {
@@ -1492,7 +1513,7 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 		mdss_dsi_validate_debugfs_info(ctrl_pdata);
 
 	cur_power_state = pdata->panel_info.panel_power_state;
-	pr_debug("%s+: ctrl=%pK ndx=%d cur_power_state=%d\n", __func__,
+	pr_info("%s+: ctrl=%pK ndx=%d cur_power_state=%d\n", __func__,
 		ctrl_pdata, ctrl_pdata->ndx, cur_power_state);
 
 	pinfo = &pdata->panel_info;
@@ -1574,7 +1595,7 @@ int mdss_dsi_on(struct mdss_panel_data *pdata)
 				  MDSS_DSI_ALL_CLKS, MDSS_DSI_CLK_OFF);
 
 end:
-	pr_debug("%s-:\n", __func__);
+	pr_info("%s-:\n", __func__);
 	return ret;
 }
 

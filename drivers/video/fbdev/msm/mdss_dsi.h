@@ -1,5 +1,21 @@
+<<<<<<< HEAD
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (c) 2012-2021, The Linux Foundation. All rights reserved. */
+=======
+/* Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 
 #ifndef MDSS_DSI_H
 #define MDSS_DSI_H
@@ -503,12 +519,16 @@ struct mdss_dsi_ctrl_pdata {
 	struct dsi_panel_cmds lp_on_cmds;
 	struct dsi_panel_cmds lp_off_cmds;
 	struct dsi_panel_cmds status_cmds;
+<<<<<<< HEAD
 
 	/* LiveDisplay cmds - Single */
+=======
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 	struct dsi_panel_cmds cabc_on_cmds;
 	struct dsi_panel_cmds cabc_off_cmds;
 	struct dsi_panel_cmds ce_on_cmds;
 	struct dsi_panel_cmds ce_off_cmds;
+<<<<<<< HEAD
 	struct dsi_panel_cmds reading_on_cmds;
 	struct dsi_panel_cmds reading_off_cmds;
 	/* LiveDisplay cmds - Combined*/
@@ -516,6 +536,18 @@ struct mdss_dsi_ctrl_pdata {
 	struct dsi_panel_cmds cabc_ce_on_cmds;
 	struct dsi_panel_cmds cabc_ce_off_cmds;
 
+=======
+	struct dsi_panel_cmds srgb_on_cmds;
+	struct dsi_panel_cmds srgb_off_cmds;
+	struct dsi_panel_cmds cabc_movie_on_cmds;
+	struct dsi_panel_cmds cabc_movie_off_cmds;
+	struct dsi_panel_cmds cabc_still_on_cmds;
+	struct dsi_panel_cmds cabc_still_off_cmds;
+	//struct dsi_panel_cmds gamma_on_cmds;
+	//struct dsi_panel_cmds gamma_off_cmds;
+	struct dsi_panel_cmds idle_on_cmds; /* for lp mode */
+	struct dsi_panel_cmds idle_off_cmds;
+>>>>>>> 875c3150c582 (drivers: video: Import Xiaomi changes)
 	u32 *status_valid_params;
 	u32 *status_cmds_rlen;
 	u32 *status_value;
