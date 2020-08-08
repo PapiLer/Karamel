@@ -333,6 +333,11 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(capacity_alert_min),
 	POWER_SUPPLY_ATTR(capacity_alert_max),
 	POWER_SUPPLY_ATTR(capacity_level),
+<<<<<<< HEAD
+=======
+	POWER_SUPPLY_ATTR(capacity_raw),
+	POWER_SUPPLY_ATTR(otg_ctrl),
+>>>>>>> 5237be5c1643 (drivers: power: supply: Import Xiaomi changes)
 	POWER_SUPPLY_ATTR(temp),
 	POWER_SUPPLY_ATTR(temp_max),
 	POWER_SUPPLY_ATTR(temp_min),

@@ -1,6 +1,20 @@
+<<<<<<< HEAD
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2018-2020 The Linux Foundation. All rights reserved.
+=======
+/* Copyright (c) 2018 The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+>>>>>>> 5237be5c1643 (drivers: power: supply: Import Xiaomi changes)
  */
 
 #include <linux/alarmtimer.h>
@@ -360,6 +374,7 @@ int qg_write_monotonic_soc(struct qpnp_qg *chip, int msoc)
 	return rc;
 }
 
+extern char* Get_BatID(void);
 int qg_get_battery_temp(struct qpnp_qg *chip, int *temp)
 {
 	int rc = 0;
@@ -369,12 +384,36 @@ int qg_get_battery_temp(struct qpnp_qg *chip, int *temp)
 		return 0;
 	}
 
+<<<<<<< HEAD
 	rc = iio_read_channel_processed(chip->batt_therm_chan, temp);
 	if (rc < 0) {
 		pr_err("Failed reading BAT_TEMP over ADC rc=%d\n", rc);
 		return rc;
 	}
 	pr_debug("batt_temp = %d\n", *temp);
+=======
+	if(!strcmp(Get_BatID(), "battery_30k")){
+		rc = qpnp_vadc_read(chip->vadc_dev, VADC_BAT_THERM_PU1, &result);
+        if (rc) {
+            printk(KERN_ERR "Failed reading adc channel=%d, rc=%d\n",
+                                    VADC_BAT_THERM_PU1, rc);
+            return rc;
+        }
+
+	}else{
+		rc = qpnp_vadc_read(chip->vadc_dev, VADC_BAT_THERM_PU2, &result);
+        if (rc) {
+            printk(KERN_ERR "Failed reading adc channel=%d, rc=%d\n",
+                                    VADC_BAT_THERM_PU2, rc);
+            return rc;
+        }
+
+	}
+
+
+	pr_debug("batt_temp = %lld meas = 0x%llx\n",
+			result.physical, result.measurement);
+>>>>>>> 5237be5c1643 (drivers: power: supply: Import Xiaomi changes)
 
 	return 0;
 }
@@ -410,7 +449,12 @@ int qg_get_battery_current(struct qpnp_qg *chip, int *ibat_ua)
 	}
 
 	last_ibat = sign_extend32(last_ibat, 15);
+<<<<<<< HEAD
 	*ibat_ua = qg_iraw_to_ua(chip, last_ibat);
+=======
+	*ibat_ua = I_RAW_TO_UA(last_ibat);
+	*ibat_ua = -*ibat_ua;
+>>>>>>> 5237be5c1643 (drivers: power: supply: Import Xiaomi changes)
 
 release:
 	/* release */
