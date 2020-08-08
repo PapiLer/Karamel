@@ -1,3 +1,19 @@
+<<<<<<< HEAD:arch/arm64/boot/dts/vendor/qcom/pmi632.dtsi
+=======
+/* Copyright (c) 2017-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+>>>>>>> 3696be970b68 (ARM64: dts: Import Xiaomi changes):arch/arm64/boot/dts/qcom/pmi632.dtsi
 #include <dt-bindings/interrupt-controller/irq.h>
 #include <dt-bindings/spmi/spmi.h>
 #include <dt-bindings/iio/qcom,spmi-vadc.h>
@@ -17,6 +33,11 @@
 		pmi632_pon: qcom,power-on@800 {
 			compatible = "qcom,qpnp-power-on";
 			reg = <0x800 0x100>;
+<<<<<<< HEAD:arch/arm64/boot/dts/vendor/qcom/pmi632.dtsi
+=======
+
+			qcom,secondary-pon-reset;
+>>>>>>> 3696be970b68 (ARM64: dts: Import Xiaomi changes):arch/arm64/boot/dts/qcom/pmi632.dtsi
 		};
 
 		pmi632_vadc: vadc@3100 {
@@ -89,12 +110,25 @@
 				qcom,pre-scaling = <1 1>;
 			};
 
+<<<<<<< HEAD:arch/arm64/boot/dts/vendor/qcom/pmi632.dtsi
 			bat_therm_30k {
 				reg = <ADC_BAT_THERM_PU1>;
 				label = "bat_therm_30k";
 				qcom,ratiometric;
 				qcom,hw-settle-time = <200>;
 				qcom,pre-scaling = <1 1>;
+=======
+			chan@2a {
+				label = "bat_therm_PU30";
+				reg = <0x2a>;
+				qcom,decimation = <2>;
+				qcom,pre-div-channel-scaling = <0>;
+				qcom,calibration-type = "ratiometric";
+				qcom,scale-function = <22>;
+				qcom,hw-settle-time = <0>;
+				qcom,fast-avg-setup = <0>;
+				qcom,cal-val = <0>;
+>>>>>>> 3696be970b68 (ARM64: dts: Import Xiaomi changes):arch/arm64/boot/dts/qcom/pmi632.dtsi
 			};
 
 			bat_therm_400k {
@@ -131,6 +165,32 @@
 				qcom,pre-scaling = <1 1>;
 			};
 
+<<<<<<< HEAD:arch/arm64/boot/dts/vendor/qcom/pmi632.dtsi
+=======
+			chan@53 {
+				label = "backlight_therm";
+				reg = <0x53>;
+				qcom,decimation = <2>;
+				qcom,pre-div-channel-scaling = <0>;
+				qcom,calibration-type = "ratiometric";
+				qcom,scale-function = <2>;
+				qcom,hw-settle-time = <0>;
+				qcom,fast-avg-setup = <0>;
+				qcom,cal-val = <0>;
+			};
+
+			chan@54 {
+				label = "smb_therm";
+				reg = <0x54>;
+				qcom,decimation = <2>;
+				qcom,pre-div-channel-scaling = <0>;
+				qcom,calibration-type = "ratiometric";
+				qcom,scale-function = <2>;
+				qcom,hw-settle-time = <0>;
+				qcom,fast-avg-setup = <0>;
+				qcom,cal-val = <0>;
+			};
+>>>>>>> 3696be970b68 (ARM64: dts: Import Xiaomi changes):arch/arm64/boot/dts/qcom/pmi632.dtsi
 		};
 
 		pmi632_adc_tm: adc_tm@3500 {
@@ -141,6 +201,21 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 			#thermal-sensor-cells = <1>;
+<<<<<<< HEAD:arch/arm64/boot/dts/vendor/qcom/pmi632.dtsi
+=======
+
+			chan@53 {
+				label = "backlight_therm";
+				reg = <0x53>;
+				qcom,pre-div-channel-scaling = <0>;
+				qcom,calibration-type = "ratiometric";
+				qcom,scale-function = <2>;
+				qcom,hw-settle-time = <0>;
+				qcom,btm-channel-number = <0x60>;
+				qcom,thermal-node;
+			};
+
+>>>>>>> 3696be970b68 (ARM64: dts: Import Xiaomi changes):arch/arm64/boot/dts/qcom/pmi632.dtsi
 		};
 
 		pmi632_tz: qcom,temp-alarm@2400 {
@@ -177,6 +252,7 @@
 			#cooling-cells = <2>;
 
 			qcom,pmic-revid = <&pmi632_revid>;
+<<<<<<< HEAD:arch/arm64/boot/dts/vendor/qcom/pmi632.dtsi
 			io-channels = <&pmi632_vadc ADC_USB_IN_V_16>,
 				      <&pmi632_vadc ADC_USB_IN_I>,
 				      <&pmi632_vadc ADC_CHG_TEMP>,
@@ -185,6 +261,24 @@
 					   "usb_in_current",
 					   "chg_temp",
 					   "die_temp";
+=======
+			dpdm-supply = <&qusb_phy>;
+			qcom,chg-vadc = <&pmi632_vadc>;
+			qcom,float-option = <1>;
+			qcom,auto-recharge-soc = <99>;
+			qcom,hvdcp-disable;
+			qcom,micro-usb;
+			qcom,sw-jeita-enable = <1>;
+			qcom,fcc-max-ua = <2000000>;
+			qcom,usb-icl-ua = <3000000>;
+			qcom,fv-max-uv =  <4400000>;
+			qcom,chg-term-src = <1>;
+			qcom,chg-term-current-ma = <(-200)>;
+
+			qcom,thermal-mitigation
+				= <2000000 1500000 1000000 800000
+					500000 200000>;
+>>>>>>> 3696be970b68 (ARM64: dts: Import Xiaomi changes):arch/arm64/boot/dts/qcom/pmi632.dtsi
 
 			qcom,chgr@1000 {
 				reg = <0x1000 0x100>;
@@ -341,11 +435,25 @@
 			#address-cells = <1>;
 			#size-cells = <1>;
 
+<<<<<<< HEAD:arch/arm64/boot/dts/vendor/qcom/pmi632.dtsi
 			qcom,pmic-revid = <&pmi632_revid>;
 			io-channels = <&pmi632_vadc ADC_BAT_THERM_PU2>,
 				      <&pmi632_vadc ADC_BAT_ID_PU2>;
 			io-channel-names = "batt-therm",
 					   "batt-id";
+=======
+			qcom,vbatt-empty-mv = <2900>;
+			qcom,vbatt-empty-cold-mv = <3000>;
+			qcom,vbatt-low-mv = <3600>;
+			qcom,vbatt-cutoff-mv = <3500>;
+			qcom,qg-iterm-ma = <330>;
+			qcom,hold-soc-while-full;
+			qcom,linearize-soc;
+			qcom,qg-vadc = <&pmi632_vadc>;
+			qcom,pmic-revid = <&pmi632_revid>;
+			qcom,ignore-shutdown-soc-secs = <1800>;
+			qcom,shutdown-soc-threshold = <40>;
+>>>>>>> 3696be970b68 (ARM64: dts: Import Xiaomi changes):arch/arm64/boot/dts/qcom/pmi632.dtsi
 
 			qcom,qgauge@4800 {
 				status = "okay";
@@ -534,7 +642,7 @@
 				qcom,max-current = <1500>;
 				qcom,default-led-trigger = "flash0_trigger";
 				qcom,id = <0>;
-				qcom,current-ma = <1000>;
+				qcom,current-ma = <1200>;
 				qcom,duration-ms = <1280>;
 				qcom,ires-ua = <12500>;
 				qcom,hdrm-voltage-mv = <400>;
@@ -557,10 +665,10 @@
 			pmi632_torch0: qcom,torch_0 {
 				label = "torch";
 				qcom,led-name = "led:torch_0";
-				qcom,max-current = <500>;
+				qcom,max-current = <1200>;
 				qcom,default-led-trigger = "torch0_trigger";
 				qcom,id = <0>;
-				qcom,current-ma = <300>;
+				qcom,current-ma = <200>;
 				qcom,ires-ua = <12500>;
 				qcom,hdrm-voltage-mv = <400>;
 				qcom,hdrm-vol-hi-lo-win-mv = <100>;
@@ -576,6 +684,14 @@
 				qcom,ires-ua = <12500>;
 				qcom,hdrm-voltage-mv = <400>;
 				qcom,hdrm-vol-hi-lo-win-mv = <100>;
+			};
+
+			qcom,flashlight_0 {
+				label = "flashlight";
+				qcom,led-name = "flashlight";
+				qcom,torch-name = "led:torch_0", "led:torch_1";
+				qcom,switch-name = "led:switch_0";
+				qcom,id = <0>;
 			};
 
 			pmi632_switch0: qcom,led_switch_0 {
