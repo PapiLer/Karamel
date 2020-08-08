@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2012-2020 The Linux Foundation. All rights reserved.
+=======
+/* Copyright (c) 2012-2017, 2018, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
+>>>>>>> c01048361805 (drivers: media: camera: Import Xiaomi changes)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and

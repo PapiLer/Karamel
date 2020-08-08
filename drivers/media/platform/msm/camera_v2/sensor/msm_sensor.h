@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 /* SPDX-License-Identifier: GPL-2.0-only */
 /* Copyright (c) 2011-2016, 2018, 2020, The Linux Foundation. All rights reserved.
+=======
+/* Copyright (c) 2011-2016, 2018, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
+>>>>>>> c01048361805 (drivers: media: camera: Import Xiaomi changes)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -91,6 +96,7 @@ struct msm_sensor_ctrl_t {
 	uint8_t is_csid_tg_mode;
 	uint32_t is_secure;
 	uint8_t bypass_video_node_creation;
+	uint8_t vendor_id_need_read;
 };
 
 int msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void *argp);
@@ -102,6 +108,8 @@ int msm_sensor_power_down(struct msm_sensor_ctrl_t *s_ctrl);
 int msm_sensor_check_id(struct msm_sensor_ctrl_t *s_ctrl);
 
 int msm_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl);
+
+int msm_sensor_match_vendor_id(struct msm_sensor_ctrl_t *s_ctrl);
 
 int msm_sensor_update_cfg(struct msm_sensor_ctrl_t *s_ctrl);
 

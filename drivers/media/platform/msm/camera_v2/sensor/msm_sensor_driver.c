@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2013-2020, The Linux Foundation. All rights reserved.
+=======
+/* Copyright (c) 2013-2018, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
+>>>>>>> c01048361805 (drivers: media: camera: Import Xiaomi changes)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -30,6 +35,9 @@ extern int xiaomi_ulysse_match_sensor_eeprom(struct msm_camera_sensor_slave_info
 extern int xiaomi_wingtech_sensor_match_id(struct msm_camera_sensor_slave_info *slave_info);
 extern void xiaomi_wingtech_sensor_read_fusion_id(struct msm_camera_sensor_slave_info *slave_info, struct msm_sensor_ctrl_t *s_ctrl);
 #endif
+
+#include <soc/qcom/camera2.h>
+extern struct vendor_eeprom s_vendor_eeprom[CAMERA_VENDOR_EEPROM_COUNT_MAX];
 
 /* Logging macro */
 #undef CDBG
@@ -233,9 +241,10 @@ static int32_t msm_sensor_fill_eeprom_subdevid_by_name(
 				s_ctrl->sensordata->eeprom_name);
 			of_node_put(src_node);
 			userspace_probe = 1;
-			if (count > 1)
+			if (count > 5)
 				return -EINVAL;
 		}
+
 		if (!userspace_probe &&
 			strcmp(eeprom_name, s_ctrl->sensordata->eeprom_name))
 			continue;
@@ -757,6 +766,69 @@ static int32_t msm_sensor_driver_is_special_support(
 	return rc;
 }
 
+/* add sensor info for factory mode begin by Brave*/
+static struct kobject *msm_sensor_device=NULL;
+static char module_info[150] = {0};
+
+void msm_sensor_set_module_info(struct msm_sensor_ctrl_t *s_ctrl)
+{
+	pr_err("s_ctrl->sensordata->camera_type = %d\n", s_ctrl->sensordata->sensor_info->position);
+
+	switch (s_ctrl->sensordata->sensor_info->position) {
+		case BACK_CAMERA_B:
+			strcat(module_info, "back: ");
+			break;
+		case AUX_CAMERA_B:
+			strcat(module_info, "back_aux: ");
+			break;
+		case FRONT_CAMERA_B:
+			strcat(module_info, "front: ");
+			break;
+		default:
+			strcat(module_info, "unknown: ");
+			break;
+	}
+	strcat(module_info, s_ctrl->sensordata->sensor_name);
+	strcat(module_info, "\n");
+}
+
+static ssize_t msm_sensor_module_id_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	ssize_t rc = 0;
+
+	sprintf(buf, "%s\n", module_info);
+	rc = strlen(buf) + 1;
+
+	return rc;
+}
+
+static DEVICE_ATTR(sensor, 0664, msm_sensor_module_id_show, NULL);
+
+int32_t msm_sensor_init_device_name(void)
+{
+	int32_t rc = 0;
+	pr_err("%s %d\n", __func__,__LINE__);
+	if(msm_sensor_device != NULL){
+		pr_err("android_camera already created\n");
+		return 0;
+	}
+	msm_sensor_device = kobject_create_and_add("android_camera", NULL);
+	if (msm_sensor_device == NULL) {
+		pr_err("%s: subsystem_register failed\n", __func__);
+		rc = -ENOMEM;
+		return rc;
+	}
+	rc = sysfs_create_file(msm_sensor_device, &dev_attr_sensor.attr);
+	if (rc) {
+		pr_err("%s: sysfs_create_file failed\n", __func__);
+		kobject_del(msm_sensor_device);
+	}
+
+	return 0 ;
+}
+/* add sensor info for factory mode end by Brave*/
+
 /* static function definition */
 int32_t msm_sensor_driver_probe(void *setting,
 	struct msm_sensor_info_t *probed_info, char *entity_name)
@@ -771,6 +843,7 @@ int32_t msm_sensor_driver_probe(void *setting,
 	uint32_t                             is_yuv;
 	struct msm_camera_i2c_reg_array     *reg_setting = NULL;
 	struct msm_sensor_id_info_t         *id_info = NULL;
+	uint32_t                             i = 0;
 
 	/* Validate input parameters */
 	if (!setting) {
@@ -870,6 +943,8 @@ int32_t msm_sensor_driver_probe(void *setting,
 				reg_setting;
 		}
 
+		slave_info->vendor_id_info = slave_info32->vendor_id_info;
+
 		slave_info->slave_addr = slave_info32->slave_addr;
 		slave_info->power_setting_array.size =
 			slave_info32->power_setting_array.size;
@@ -952,6 +1027,7 @@ int32_t msm_sensor_driver_probe(void *setting,
 		goto free_slave_info;
 	}
 
+<<<<<<< HEAD
 #if IS_ENABLED(CONFIG_MACH_FAMILY_XIAOMI_ULYSSE)
 	if (xiaomi_msm8937_mach_get_family() == XIAOMI_MSM8937_MACH_FAMILY_ULYSSE) {
 		rc = xiaomi_ulysse_match_sensor_eeprom(slave_info);
@@ -959,6 +1035,35 @@ int32_t msm_sensor_driver_probe(void *setting,
 			goto free_slave_info;
 	}
 #endif
+=======
+	if (!(strcmp(slave_info->eeprom_name, "onc_s5k4h7_ofilm_i"))
+	 || !(strcmp(slave_info->eeprom_name, "onc_s5k4h7_sunny_ii"))
+	 || !(strcmp(slave_info->eeprom_name, "onc_ov02a10_ofilm_i"))
+	 || !(strcmp(slave_info->eeprom_name, "onc_ov02a10_sunny_ii"))
+		) {
+		for (i = 0; i < CAMERA_VENDOR_EEPROM_COUNT_MAX; i++) {
+			if (strcmp(slave_info->eeprom_name,s_vendor_eeprom[i].eeprom_name) == 0) {
+				//s_vendor_eeprom is from kernel camera dtsi
+				pr_err("Brave eeprom_name[%d]=%s, module_id=%d\n",i,s_vendor_eeprom[i].eeprom_name, s_vendor_eeprom[i].module_id);
+				if (((strcmp(slave_info->sensor_name,"onc_ov02a10_ofilm_i") == 0) && (s_vendor_eeprom[i].module_id == MID_OFILM))
+				|| ((strcmp(slave_info->sensor_name,"onc_ov02a10_sunny_ii") == 0) && (s_vendor_eeprom[i].module_id == MID_SUNNY))
+				|| ((strcmp(slave_info->sensor_name,"onc_s5k4h7_ofilm_i") == 0) && (s_vendor_eeprom[i].module_id == MID_OFILM))
+				|| ((strcmp(slave_info->sensor_name,"onc_s5k4h7_sunny_ii") == 0) && (s_vendor_eeprom[i].module_id == MID_SUNNY))
+				) {
+					pr_err("module found! probe continue!\n");
+					break;
+				}
+			}
+		}
+		if (i >= CAMERA_VENDOR_EEPROM_COUNT_MAX) {
+			pr_err("module not found! probe break!\n");
+			rc = -EFAULT;
+			goto free_slave_info;
+		}
+	} else {
+		slave_info->vendor_id_need_read = 1;
+	}
+>>>>>>> c01048361805 (drivers: media: camera: Import Xiaomi changes)
 
 	/* Print slave info */
 	CDBG("camera id %d Slave addr 0x%X addr_type %d\n",
@@ -1001,7 +1106,7 @@ int32_t msm_sensor_driver_probe(void *setting,
 		rc = -EINVAL;
 		goto free_slave_info;
 	}
-
+	s_ctrl->vendor_id_need_read = slave_info->vendor_id_need_read;
 	CDBG("s_ctrl[%d] %pK", slave_info->camera_id, s_ctrl);
 
 	if (s_ctrl->sensordata->special_support_size > 0) {
@@ -1020,10 +1125,19 @@ int32_t msm_sensor_driver_probe(void *setting,
 		 * and probe already succeeded for that sensor. Ignore this
 		 * probe
 		 */
+<<<<<<< HEAD
 		if (slave_info->sensor_id_info.sensor_id ==
 			s_ctrl->sensordata->cam_slave_info->sensor_id_info
 			.sensor_id && !(strcmp(slave_info->sensor_name,
 			s_ctrl->sensordata->cam_slave_info->sensor_name))) {
+=======
+		if ((slave_info->sensor_id_info.sensor_id ==
+			s_ctrl->sensordata->cam_slave_info->sensor_id_info.sensor_id)
+		 && !(strcmp(slave_info->sensor_name,
+			s_ctrl->sensordata->cam_slave_info->sensor_name))
+		 && (slave_info->vendor_id_info.vendor_id ==
+		    s_ctrl->sensordata->cam_slave_info->vendor_id_info.vendor_id)) {
+>>>>>>> c01048361805 (drivers: media: camera: Import Xiaomi changes)
 			pr_err("slot%d: sensor name: %s sensor id%d already probed\n",
 				slave_info->camera_id,
 				slave_info->sensor_name,
@@ -1124,6 +1238,7 @@ CSID_TG:
 	s_ctrl->sensordata->actuator_name = slave_info->actuator_name;
 	s_ctrl->sensordata->ois_name = slave_info->ois_name;
 	s_ctrl->sensordata->flash_name = slave_info->flash_name;
+	s_ctrl->sensordata->vendor_id_info = &slave_info->vendor_id_info;
 	/*
 	 * Update eeporm subdevice Id by input eeprom name
 	 */
@@ -1218,6 +1333,11 @@ CSID_TG:
 	s_ctrl->sensordata->cam_slave_info = slave_info;
 
 	msm_sensor_fill_sensor_info(s_ctrl, probed_info, entity_name);
+
+	/*add begain by Brave*/
+	msm_sensor_init_device_name();
+	msm_sensor_set_module_info(s_ctrl);
+	/*add end by Brave*/
 
 	/*
 	 * Set probe succeeded flag to 1 so that no other camera shall
