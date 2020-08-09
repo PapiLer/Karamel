@@ -5,6 +5,22 @@
  *
  * drivers/mmc/host/sdhci-msm.c - Qualcomm Technologies, Inc. MSM SDHCI Platform
  * driver source file
+<<<<<<< HEAD
+=======
+ *
+ * Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+>>>>>>> 64e075708447 (drivers: mmc: Import Xiaomi changes)
  */
 
 #include <linux/module.h>
@@ -31,6 +47,11 @@
 #include <linux/iopoll.h>
 #include <linux/msm-bus.h>
 #include <linux/pm_runtime.h>
+<<<<<<< HEAD
+=======
+#include <linux/nvmem-consumer.h>
+#include <linux/device.h>
+>>>>>>> 64e075708447 (drivers: mmc: Import Xiaomi changes)
 #include <trace/events/mmc.h>
 #include <linux/clk/qcom.h>
 
@@ -5249,6 +5270,7 @@ static bool sdhci_msm_is_bootdevice(struct device *dev)
 	return true;
 }
 
+<<<<<<< HEAD
 static int sdhci_msm_setup_ice_clk(struct sdhci_msm_host *msm_host,
 						struct platform_device *pdev)
 {
@@ -5350,6 +5372,50 @@ static int sdhci_msm_add_host(struct sdhci_msm_host *msm_host)
 out:
 	return ret;
 }
+=======
+/* add sdcard slot detect status for factory mode
+ *    begin
+ *    */
+static struct kobject *card_slot_device = NULL;
+static struct sdhci_msm_host *host_with_slot_detect = NULL;
+
+static ssize_t card_slot_status_show(struct device *dev,
+					       struct device_attribute *attr, char *buf)
+{
+	if (host_with_slot_detect && gpio_is_valid(host_with_slot_detect->pdata->status_gpio)) {
+		return snprintf(buf, PAGE_SIZE, "%d\n", mmc_gpio_get_cd(host_with_slot_detect->mmc));
+	} else
+		return -EINVAL;
+}
+
+static DEVICE_ATTR(card_slot_status, S_IRUGO ,
+						card_slot_status_show, NULL);
+
+int32_t card_slot_init_device_name(void)
+{
+	int32_t error = 0;
+	if(card_slot_device != NULL){
+		pr_err("card_slot already created\n");
+		return 0;
+	}
+	card_slot_device = kobject_create_and_add("card_slot", NULL);
+	if (card_slot_device == NULL) {
+		printk("%s: card_slot register failed\n", __func__);
+		error = -ENOMEM;
+		return error ;
+	}
+	error = sysfs_create_file(card_slot_device, &dev_attr_card_slot_status.attr);
+	if (error) {
+		printk("%s: card_slot_status_create_file failed\n", __func__);
+		kobject_del(card_slot_device);
+	}
+
+	return 0 ;
+}
+/* add sdcard slot detect status for factory mode
+ *    end
+ *    */
+>>>>>>> 64e075708447 (drivers: mmc: Import Xiaomi changes)
 
 static int sdhci_msm_probe(struct platform_device *pdev)
 {
@@ -5750,6 +5816,9 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 			dev_err(&pdev->dev, "%s: Failed to request card detection IRQ %d\n",
 					__func__, ret);
 			goto vreg_deinit;
+		}else{
+			host_with_slot_detect = msm_host;
+			card_slot_init_device_name();
 		}
 	}
 
