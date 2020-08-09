@@ -640,6 +640,12 @@ config ANT_CHECK
 	default n
 >>>>>>> 430488f4439c (drivers: misc: Import ANT check driver from Xiaomi)
 
+config SIMTRAY_STATUS
+	tristate "Xiaomi SIM tray status"
+	default n
+	help
+	  Say 'y' here to support SIM tray GPIO detection
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
