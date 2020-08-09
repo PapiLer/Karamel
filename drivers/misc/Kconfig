@@ -560,6 +560,7 @@ config QPNP_MISC
 	  and the driver provides an API to check if this interrupt
 	  is available on the current PMIC chip.
 
+<<<<<<< HEAD
 config OKL4_USER_VIRQ
 	tristate "User space accessible OKL4 virtual interrupts"
 	depends on OKL4_GUEST
@@ -630,6 +631,14 @@ config KINECTICS_XR_NORDIC
 	  code to power up the Nordic chip and initializes SPI interface. Also,
 	  this also parses the gpios and interrupts from device tree and sets
 	  the gpios and interrupt handler for handling the interrupt.
+=======
+config ANT_CHECK
+	tristate "ant check gpio"
+	depends on GPIOLIB
+	help
+	  Say 'y' here to include support for An gpio detect Ant connect Machine
+	default n
+>>>>>>> 430488f4439c (drivers: misc: Import ANT check driver from Xiaomi)
 
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
