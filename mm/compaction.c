@@ -7,6 +7,7 @@
  * lifting
  *
  * Copyright IBM Corp. 2007-2010 Mel Gorman <mel@csn.ul.ie>
+ * Copyright (C) 2020 XiaoMi, Inc.
  */
 #include <linux/cpu.h>
 #include <linux/swap.h>
@@ -1906,6 +1907,7 @@ static enum compact_result __compact_finished(struct compact_control *cc)
 		 * other migratetype buddy lists.
 		 */
 		if (find_suitable_fallback(area, order, migratetype,
+<<<<<<< HEAD
 						true, &can_steal) != -1) {
 
 			/* movable pages are OK in any pageblock */
@@ -1929,6 +1931,10 @@ static enum compact_result __compact_finished(struct compact_control *cc)
 			ret = COMPACT_CONTINUE;
 			break;
 		}
+=======
+						true, &can_steal, cc->order) != -1)
+			return COMPACT_SUCCESS;
+>>>>>>> f71404a73616 (mm: Import Xiaomi changes)
 	}
 
 	if (cc->contended || fatal_signal_pending(current))
