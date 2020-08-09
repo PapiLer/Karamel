@@ -1141,8 +1141,12 @@ struct ext4_inode_info {
 #define EXT4_MOUNT_DIOREAD_NOLOCK	0x400000 /* Enable support for dio read nolocking */
 #define EXT4_MOUNT_JOURNAL_CHECKSUM	0x800000 /* Journal checksums */
 #define EXT4_MOUNT_JOURNAL_ASYNC_COMMIT	0x1000000 /* Journal Async Commit */
+<<<<<<< HEAD
 #define EXT4_MOUNT_WARN_ON_ERROR	0x2000000 /* Trigger WARN_ON on error */
 #define EXT4_MOUNT_INLINECRYPT		0x4000000 /* Inline encryption support */
+=======
+#define EXT4_MOUNT_ASYNC_FSYNC 		0x2000000 /* Tune fsync according to calling process's uid/gid */
+>>>>>>> 2d0b3c3ac9cf (fs: ext4: Import Xiaomi changes)
 #define EXT4_MOUNT_DELALLOC		0x8000000 /* Delalloc support */
 #define EXT4_MOUNT_DATA_ERR_ABORT	0x10000000 /* Abort on file data write */
 #define EXT4_MOUNT_BLOCK_VALIDITY	0x20000000 /* Block validity checking */
@@ -1509,6 +1513,12 @@ struct ext4_sb_info {
 
 	/* record the last minlen when FITRIM is called. */
 	unsigned long s_last_trim_minblks;
+
+	/* # of issued fsync/fdatasync */
+	atomic_t s_total_fsync;
+
+	/* # of issued fsync/fdatasync which don't need to wait transaction to complete */
+	atomic_t s_async_fsync;
 
 	/* Reference to checksum algorithm driver via cryptoapi */
 	struct crypto_shash *s_chksum_driver;
