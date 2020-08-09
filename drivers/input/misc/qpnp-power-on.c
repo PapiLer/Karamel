@@ -1,6 +1,20 @@
+<<<<<<< HEAD
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
+=======
+/* Copyright (c) 2012-2018, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+>>>>>>> cda26d792a9b (ARM64: kernel: Import Xiaomi's boot info)
  */
 
 #include <linux/debugfs.h>
@@ -26,9 +40,20 @@
 #include <linux/regulator/machine.h>
 #include <linux/regulator/of_regulator.h>
 
+<<<<<<< HEAD
 #define PMIC_VER_8941				0x01
 #define PMIC_VERSION_REG			0x0105
 #define PMIC_VERSION_REV4_REG			0x0103
+=======
+#ifdef CONFIG_BOOT_INFO
+#include <asm/bootinfo.h>
+#define QPNP_POFF_REASON2(pon)			((pon)->base + 0xD)
+#endif
+
+#define PMIC_VER_8941           0x01
+#define PMIC_VERSION_REG        0x0105
+#define PMIC_VERSION_REV4_REG   0x0103
+>>>>>>> cda26d792a9b (ARM64: kernel: Import Xiaomi's boot info)
 
 #define PMIC8941_V1_REV4			0x01
 #define PMIC8941_V2_REV4			0x02
@@ -489,6 +514,69 @@ static ssize_t debounce_us_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(debounce_us);
 
+<<<<<<< HEAD
+=======
+static struct qpnp_pon_config *
+qpnp_get_cfg(struct qpnp_pon *pon, u32 pon_type)
+{
+	int i;
+
+	for (i = 0; i < pon->num_pon_config; i++) {
+		if (pon_type == pon->pon_cfg[i].pon_type)
+			return  &pon->pon_cfg[i];
+	}
+
+	return NULL;
+}
+
+static DEVICE_ATTR(debounce_us, 0664, qpnp_pon_dbc_show, qpnp_pon_dbc_store);
+
+static ssize_t qpnp_kpdpwr_reset_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct qpnp_pon *pon = dev_get_drvdata(dev);
+	int val;
+	int rc;
+
+	rc = regmap_read(pon->regmap, QPNP_PON_KPDPWR_S2_CNTL2(pon), &val);
+	if (rc) {
+		pr_err("Unable to read pon_dbc_ctl rc=%d\n", rc);
+		return rc;
+	}
+
+	val &= QPNP_PON_S2_RESET_ENABLE;
+	val = val >> 7;
+
+	return snprintf(buf, QPNP_PON_BUFFER_SIZE, "%d\n", val);
+}
+
+static ssize_t qpnp_kpdpwr_reset_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf, size_t size)
+{
+	struct qpnp_pon *pon = dev_get_drvdata(dev);
+	u32 value;
+	int rc;
+
+	if (size > QPNP_PON_BUFFER_SIZE)
+		return -EINVAL;
+
+	rc = kstrtou32(buf, 10, &value);
+	if (rc)
+		return rc;
+
+	value = value << 7;
+	value &= QPNP_PON_S2_RESET_ENABLE;
+
+	rc = regmap_write(pon->regmap, QPNP_PON_KPDPWR_S2_CNTL2(pon), value);
+
+	return size;
+}
+
+static DEVICE_ATTR(kpdpwr_reset, 0664, qpnp_kpdpwr_reset_show, qpnp_kpdpwr_reset_store);
+
+#define PON_TWM_ENTRY_PBS_BIT           BIT(0)
+>>>>>>> cda26d792a9b (ARM64: kernel: Import Xiaomi's boot info)
 static int qpnp_pon_reset_config(struct qpnp_pon *pon,
 				 enum pon_power_off_type type)
 {
@@ -778,6 +866,75 @@ int qpnp_pon_is_warm_reset(void)
 	return _qpnp_pon_is_warm_reset(sys_reset_dev);
 }
 EXPORT_SYMBOL(qpnp_pon_is_warm_reset);
+
+#ifdef CONFIG_BOOT_INFO
+int qpnp_pon_is_ps_hold_reset(void)
+{
+	struct qpnp_pon *pon = sys_reset_dev;
+	int rc;
+	int reg = 0;
+
+	if (!pon)
+		return 0;
+
+	rc = regmap_read(pon->regmap, QPNP_POFF_REASON1(pon), &reg);
+	if (rc) {
+		dev_err(&pon->pdev->dev,
+				"Unable to read addr=%x, rc(%d)\n",
+				QPNP_POFF_REASON1(pon), rc);
+		return 0;
+	}
+	/* The bit 1 is 1, means by PS_HOLD/MSM controlled shutdown */
+	if (reg & (1<<POFF_REASON_EVENT_PS_HOLD))
+		return 1;
+
+	dev_info(&pon->pdev->dev,
+			"hw_reset reason1 is 0x%x\n",
+			reg);
+
+	rc = regmap_read(pon->regmap, QPNP_POFF_REASON2(pon), &reg);
+
+	dev_info(&pon->pdev->dev,
+			"hw_reset reason2 is 0x%x\n",
+			reg);
+	return 0;
+}
+EXPORT_SYMBOL(qpnp_pon_is_ps_hold_reset);
+
+int qpnp_pon_is_lpk(void)
+{
+	struct qpnp_pon *pon = sys_reset_dev;
+	int rc;
+	int reg = 0;
+
+	if (!pon)
+		return 0;
+
+	rc = regmap_read(pon->regmap, QPNP_POFF_REASON1(pon), &reg);
+	if (rc) {
+		dev_err(&pon->pdev->dev,
+				"Unable to read addr=%x, rc(%d)\n",
+				QPNP_POFF_REASON1(pon), rc);
+		return 0;
+	}
+
+	/* The bit 7 is 1, means the off reason is powerkey */
+	if (reg & (1<<POFF_REASON_EVENT_KPDPWR_N))
+		return 1;
+
+	dev_info(&pon->pdev->dev,
+			"hw_reset reason1 is 0x%x\n",
+			reg);
+
+	rc = regmap_read(pon->regmap, QPNP_POFF_REASON2(pon), &reg);
+
+	dev_info(&pon->pdev->dev,
+			"hw_reset reason2 is 0x%x\n",
+			reg);
+	return 0;
+}
+EXPORT_SYMBOL(qpnp_pon_is_lpk);
+#endif
 
 /**
  * qpnp_pon_wd_config() - configure the watch dog behavior for warm reset
@@ -2162,8 +2319,130 @@ static int qpnp_pon_read_hardware_info(struct qpnp_pon *pon, bool sys_reset)
 		rc = regmap_bulk_read(pon->regmap, QPNP_POFF_REASON1(pon), buf,
 				      2);
 		if (rc) {
+<<<<<<< HEAD
 			dev_err(dev, "Register read failed, addr=0x%04X, rc=%d\n",
 				QPNP_POFF_REASON1(pon), rc);
+=======
+			dev_err(&pon->pdev->dev, "Unable to read POFF_REASON regs rc:%d\n",
+				rc);
+			goto err_out;
+		}
+		poff_sts = buf[0] | (buf[1] << 8);
+	}
+	index = ffs(poff_sts) - 1 + reason_index_offset;
+	if (index >= ARRAY_SIZE(qpnp_poff_reason) || index < 0) {
+		dev_info(&pon->pdev->dev,
+				"PMIC@SID%d: Unknown power-off reason\n",
+				to_spmi_device(pon->pdev->dev.parent)->usid);
+	} else {
+		pon->pon_power_off_reason = index;
+		dev_info(&pon->pdev->dev,
+				"PMIC@SID%d: Power-off reason: %s\n",
+				to_spmi_device(pon->pdev->dev.parent)->usid,
+				qpnp_poff_reason[index]);
+#ifdef CONFIG_BOOT_INFO
+		set_poweroff_reason(index);
+#endif
+	}
+
+	if (pon->pon_trigger_reason == PON_SMPL ||
+		pon->pon_power_off_reason == QPNP_POFF_REASON_UVLO) {
+		if (of_property_read_bool(pdev->dev.of_node,
+						"qcom,uvlo-panic"))
+			panic("An UVLO was occurred.");
+	}
+
+	/* program s3 debounce */
+	rc = of_property_read_u32(pon->pdev->dev.of_node,
+				"qcom,s3-debounce", &s3_debounce);
+	if (rc) {
+		if (rc != -EINVAL) {
+			dev_err(&pon->pdev->dev,
+				"Unable to read s3 timer rc:%d\n",
+				rc);
+			goto err_out;
+		}
+	} else {
+		if (s3_debounce > QPNP_PON_S3_TIMER_SECS_MAX) {
+			dev_info(&pon->pdev->dev,
+				"Exceeded S3 max value, set it to max\n");
+			s3_debounce = QPNP_PON_S3_TIMER_SECS_MAX;
+		}
+
+		/* 0 is a special value to indicate instant s3 reset */
+		if (s3_debounce != 0)
+			s3_debounce = ilog2(s3_debounce);
+
+		/* s3 debounce is SEC_ACCESS register */
+		rc = qpnp_pon_masked_write(pon, QPNP_PON_SEC_ACCESS(pon),
+					0xFF, QPNP_PON_SEC_UNLOCK);
+		if (rc) {
+			dev_err(&pdev->dev, "Unable to do SEC_ACCESS rc:%d\n",
+				rc);
+			goto err_out;
+		}
+
+		rc = qpnp_pon_masked_write(pon, QPNP_PON_S3_DBC_CTL(pon),
+				QPNP_PON_S3_DBC_DELAY_MASK, s3_debounce);
+		if (rc) {
+			dev_err(&pdev->dev,
+				"Unable to set S3 debounce rc:%d\n",
+				rc);
+			goto err_out;
+		}
+	}
+
+	/* program s3 source */
+	s3_src = "kpdpwr-and-resin";
+	rc = of_property_read_string(pon->pdev->dev.of_node,
+				"qcom,s3-src", &s3_src);
+	if (rc && rc != -EINVAL) {
+		dev_err(&pon->pdev->dev, "Unable to read s3 timer rc: %d\n",
+			rc);
+		goto err_out;
+	}
+
+	if (!strcmp(s3_src, "kpdpwr"))
+		s3_src_reg = QPNP_PON_S3_SRC_KPDPWR;
+	else if (!strcmp(s3_src, "resin"))
+		s3_src_reg = QPNP_PON_S3_SRC_RESIN;
+	else if (!strcmp(s3_src, "kpdpwr-or-resin"))
+		s3_src_reg = QPNP_PON_S3_SRC_KPDPWR_OR_RESIN;
+	else /* default combination */
+		s3_src_reg = QPNP_PON_S3_SRC_KPDPWR_AND_RESIN;
+
+	/*
+	 * S3 source is a write once register. If the register has
+	 * been configured by bootloader then this operation will
+	 * not be effective.
+	 */
+	rc = qpnp_pon_masked_write(pon, QPNP_PON_S3_SRC(pon),
+			QPNP_PON_S3_SRC_MASK, s3_src_reg);
+	if (rc) {
+		dev_err(&pdev->dev, "Unable to program s3 source rc: %d\n",
+			rc);
+		goto err_out;
+	}
+
+	dev_set_drvdata(&pdev->dev, pon);
+
+	INIT_DELAYED_WORK(&pon->bark_work, bark_work_func);
+
+	/* register the PON configurations */
+	rc = qpnp_pon_config_init(pon);
+	if (rc) {
+		dev_err(&pdev->dev,
+			"Unable to initialize PON configurations rc: %d\n", rc);
+		goto err_out;
+	}
+
+	if (of_property_read_bool(pon->pdev->dev.of_node,
+					"qcom,support-twm-config")) {
+		pon->support_twm_config = true;
+		rc = pon_register_twm_notifier(pon);
+		if (rc < 0) {
+			pr_err("Failed to register TWM notifier rc=%d\n", rc);
+>>>>>>> cda26d792a9b (ARM64: kernel: Import Xiaomi's boot info)
 			return rc;
 		}
 		poff_sts = buf[0] | (u16)(buf[1] << 8);
@@ -2363,7 +2642,119 @@ static int qpnp_pon_probe(struct platform_device *pdev)
 	pon->store_hard_reset_reason = of_property_read_bool(dev->of_node,
 					"qcom,store-hard-reset-reason");
 
+<<<<<<< HEAD
 	if (of_property_read_bool(dev->of_node, "qcom,secondary-pon-reset")) {
+=======
+	rc = of_property_read_u32(pon->pdev->dev.of_node,
+				"qcom,hard-reset-poweroff-type",
+				&pon->hard_reset_poff_type);
+	if (rc) {
+		if (rc != -EINVAL) {
+			dev_err(&pdev->dev, "Unable to read hard reset poweroff type rc: %d\n",
+				rc);
+			goto err_out;
+		}
+		pon->hard_reset_poff_type = -EINVAL;
+	} else if (pon->hard_reset_poff_type <= PON_POWER_OFF_RESERVED ||
+			pon->hard_reset_poff_type >= PON_POWER_OFF_MAX_TYPE) {
+		dev_err(&pdev->dev, "Invalid hard-reset-poweroff-type\n");
+		pon->hard_reset_poff_type = -EINVAL;
+	}
+
+	rc = of_property_read_u32(pon->pdev->dev.of_node,
+				"qcom,shutdown-poweroff-type",
+				&pon->shutdown_poff_type);
+	if (rc) {
+		if (rc != -EINVAL) {
+			dev_err(&pdev->dev, "Unable to read shutdown poweroff type rc: %d\n",
+				rc);
+			goto err_out;
+		}
+		pon->shutdown_poff_type = -EINVAL;
+	} else if (pon->shutdown_poff_type <= PON_POWER_OFF_RESERVED ||
+			pon->shutdown_poff_type >= PON_POWER_OFF_MAX_TYPE) {
+		dev_err(&pdev->dev, "Invalid shutdown-poweroff-type\n");
+		pon->shutdown_poff_type = -EINVAL;
+	}
+
+	pon->ps_hold_hard_reset_disable =
+					of_property_read_bool(pdev->dev.of_node,
+					"qcom,ps-hold-hard-reset-disable");
+	pon->ps_hold_shutdown_disable = of_property_read_bool(pdev->dev.of_node,
+					"qcom,ps-hold-shutdown-disable");
+
+
+	pon->resin_pon_reset = of_property_read_bool(pdev->dev.of_node,
+					"qcom,resin-pon-reset");
+
+	rc = of_property_read_u32(pon->pdev->dev.of_node,
+				"qcom,resin-warm-reset-type",
+				&pon->resin_warm_reset_type);
+	if (rc) {
+		if (rc != -EINVAL) {
+			dev_err(&pdev->dev, "Unable to read resin warm reset poweroff type rc: %d\n",
+				rc);
+			goto err_out;
+		}
+		pon->resin_warm_reset_type = -EINVAL;
+	} else if (pon->resin_warm_reset_type <= PON_POWER_OFF_RESERVED ||
+			pon->resin_warm_reset_type >= PON_POWER_OFF_MAX_TYPE) {
+		dev_err(&pdev->dev, "Invalid resin-warm-reset-type\n");
+		pon->resin_warm_reset_type = -EINVAL;
+	}
+
+	rc = of_property_read_u32(pon->pdev->dev.of_node,
+				"qcom,resin-hard-reset-type",
+				&pon->resin_hard_reset_type);
+	if (rc) {
+		if (rc != -EINVAL) {
+			dev_err(&pdev->dev, "Unable to read resin hard reset poweroff type rc: %d\n",
+				rc);
+			goto err_out;
+		}
+		pon->resin_hard_reset_type = -EINVAL;
+	} else if (pon->resin_hard_reset_type <= PON_POWER_OFF_RESERVED ||
+			pon->resin_hard_reset_type >= PON_POWER_OFF_MAX_TYPE) {
+		dev_err(&pdev->dev, "Invalid resin-hard-reset-type\n");
+		pon->resin_hard_reset_type = -EINVAL;
+	}
+
+	rc = of_property_read_u32(pon->pdev->dev.of_node,
+				"qcom,resin-shutdown-type",
+				&pon->resin_shutdown_type);
+	if (rc) {
+		if (rc != -EINVAL) {
+			dev_err(&pdev->dev, "Unable to read resin shutdown poweroff type rc: %d\n",
+				rc);
+			goto err_out;
+		}
+		pon->resin_shutdown_type = -EINVAL;
+	} else if (pon->resin_shutdown_type <= PON_POWER_OFF_RESERVED ||
+			pon->resin_shutdown_type >= PON_POWER_OFF_MAX_TYPE) {
+		dev_err(&pdev->dev, "Invalid resin-shutdown-type\n");
+		pon->resin_shutdown_type = -EINVAL;
+	}
+
+	pon->resin_hard_reset_disable = of_property_read_bool(pdev->dev.of_node,
+					"qcom,resin-hard-reset-disable");
+	pon->resin_shutdown_disable = of_property_read_bool(pdev->dev.of_node,
+					"qcom,resin-shutdown-disable");
+
+	rc = device_create_file(&pdev->dev, &dev_attr_debounce_us);
+	if (rc) {
+		dev_err(&pdev->dev, "sys file creation failed rc: %d\n", rc);
+		goto err_out;
+	}
+
+	rc = device_create_file(&pdev->dev, &dev_attr_kpdpwr_reset);
+	if (rc) {
+		dev_err(&pdev->dev, "sys file creation failed rc: %d\n", rc);
+		return rc;
+	}
+
+	if (of_property_read_bool(pdev->dev.of_node,
+					"qcom,secondary-pon-reset")) {
+>>>>>>> cda26d792a9b (ARM64: kernel: Import Xiaomi's boot info)
 		if (sys_reset) {
 			dev_err(dev, "qcom,system-reset property shouldn't be used along with qcom,secondary-pon-reset property\n");
 			return -EINVAL;

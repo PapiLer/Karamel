@@ -302,8 +302,19 @@ config PGTABLE_LEVELS
 	default 3 if ARM64_16K_PAGES && ARM64_VA_BITS_47
 	default 4 if !ARM64_64K_PAGES && ARM64_VA_BITS_48
 
+<<<<<<< HEAD
 config ARCH_SUPPORTS_UPROBES
 	def_bool y
+=======
+config BOOT_INFO
+	bool "Boot information from bootloader"
+	default y
+	help
+	  On embedded linux device, we try to collect more information from
+	  bootloader to kernel. eg. powerup reason.
+
+source "init/Kconfig"
+>>>>>>> cda26d792a9b (ARM64: kernel: Import Xiaomi's boot info)
 
 config ARCH_PROC_KCORE_TEXT
 	def_bool y

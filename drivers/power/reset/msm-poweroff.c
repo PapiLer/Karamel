@@ -1,6 +1,21 @@
+<<<<<<< HEAD
 // SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright (c) 2013-2019, The Linux Foundation. All rights reserved.
+=======
+/* Copyright (c) 2013-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+>>>>>>> cda26d792a9b (ARM64: kernel: Import Xiaomi's boot info)
  */
 
 #include <linux/delay.h>
@@ -62,10 +77,24 @@ static void scm_disable_sdi(void);
  * There is no API from TZ to re-enable the registers.
  * So the SDI cannot be re-enabled when it already by-passed.
  */
+<<<<<<< HEAD
 static int download_mode = 1;
 static struct kobject dload_kobj;
+=======
+int download_mode = 1;
+#else
+static const int download_mode = 1;
+#endif
 
-static int in_panic;
+#ifdef CONFIG_QCOM_DLOAD_MODE
+#define EDL_MODE_PROP "qcom,msm-imem-emergency_download_mode"
+#define DL_MODE_PROP "qcom,msm-imem-download_mode"
+#ifdef CONFIG_RANDOMIZE_BASE
+#define KASLR_OFFSET_PROP "qcom,msm-imem-kaslr_offset"
+#endif
+>>>>>>> cda26d792a9b (ARM64: kernel: Import Xiaomi's boot info)
+
+int in_panic;
 static int dload_type = SCM_DLOAD_FULLDUMP;
 static void *dload_mode_addr;
 static bool dload_mode_enabled;
@@ -314,6 +343,188 @@ static void setup_dload_mode_support(void)
 	}
 }
 
+<<<<<<< HEAD
+=======
+static void msm_restart_prepare(const char *cmd)
+{
+	bool need_warm_reset = false;
+#ifdef CONFIG_QCOM_DLOAD_MODE
+	/* Write download mode flags if we're panic'ing
+	 * Write download mode flags if restart_mode says so
+	 * Kill download mode if master-kill switch is set
+	 */
+
+	set_dload_mode(download_mode &&
+			(in_panic || restart_mode == RESTART_DLOAD));
+#endif
+
+	if (qpnp_pon_check_hard_reset_stored()) {
+		/* Set warm reset as true when device is in dload mode */
+		if (get_dload_mode() ||
+			((cmd != NULL && cmd[0] != '\0') &&
+			!strcmp(cmd, "edl")))
+			need_warm_reset = true;
+	} else {
+		need_warm_reset = (get_dload_mode() ||
+				(cmd != NULL && cmd[0] != '\0'));
+	}
+
+	/* Hard reset the PMIC unless memory contents must be maintained. */
+	if (need_warm_reset)
+		qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
+	else
+		qpnp_pon_system_pwr_off(PON_POWER_OFF_HARD_RESET);
+
+// xuke @ 20180611	Import pstore patch from XiaoMi.	Begin
+	if (in_panic) {
+#ifdef CONFIG_BOOT_INFO
+		qpnp_pon_set_restart_reason(PON_RESTART_REASON_PANIC);
+#endif
+		qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
+	} else if (cmd != NULL) {
+		if (!strncmp(cmd, "bootloader", 10)) {
+			qpnp_pon_set_restart_reason(
+				PON_RESTART_REASON_BOOTLOADER);
+			pr_err("jl bootloader step 1\n");
+			__raw_writel(0x77665500, restart_reason);
+			pr_err("jl bootloader step 2\n");
+		} else if (!strncmp(cmd, "recovery", 8)) {
+			qpnp_pon_set_restart_reason(
+				PON_RESTART_REASON_RECOVERY);
+			__raw_writel(0x77665502, restart_reason);
+		} else if (!strcmp(cmd, "rtc")) {
+			qpnp_pon_set_restart_reason(
+				PON_RESTART_REASON_RTC);
+			__raw_writel(0x77665503, restart_reason);
+		} else if (!strcmp(cmd, "dm-verity device corrupted")) {
+			qpnp_pon_set_restart_reason(
+				PON_RESTART_REASON_DMVERITY_CORRUPTED);
+			__raw_writel(0x77665508, restart_reason);
+		} else if (!strcmp(cmd, "dm-verity enforcing")) {
+			qpnp_pon_set_restart_reason(
+				PON_RESTART_REASON_DMVERITY_ENFORCE);
+			__raw_writel(0x77665509, restart_reason);
+		} else if (!strcmp(cmd, "keys clear")) {
+			qpnp_pon_set_restart_reason(
+				PON_RESTART_REASON_KEYS_CLEAR);
+			__raw_writel(0x7766550a, restart_reason);
+		} else if (!strncmp(cmd, "oem-", 4)) {
+			unsigned long code;
+			unsigned long reset_reason;
+			int ret;
+
+			ret = kstrtoul(cmd + 4, 16, &code);
+			if (!ret) {
+				/* Bit-2 to bit-7 of SOFT_RB_SPARE for hard
+				 * reset reason:
+				 * Value 0 to 31 for common defined features
+				 * Value 32 to 63 for oem specific features
+				 */
+				reset_reason = code +
+						PON_RESTART_REASON_OEM_MIN;
+				if (reset_reason > PON_RESTART_REASON_OEM_MAX ||
+				   reset_reason < PON_RESTART_REASON_OEM_MIN) {
+					pr_err("Invalid oem reset reason: %lx\n",
+						reset_reason);
+				} else {
+					qpnp_pon_set_restart_reason(
+						reset_reason);
+				}
+				__raw_writel(0x6f656d00 | (code & 0xff),
+					     restart_reason);
+			}
+		} else if (!strncmp(cmd, "edl", 3)) {
+			if (0) {
+				enable_emergency_dload_mode();
+			} else {
+				pr_info("This command already been disabled");
+			}
+		} else {
+#ifdef CONFIG_BOOT_INFO
+			qpnp_pon_set_restart_reason(PON_RESTART_REASON_NORMAL);
+#endif
+			__raw_writel(0x77665501, restart_reason);
+		}
+#ifdef CONFIG_BOOT_INFO
+	} else {
+			qpnp_pon_set_restart_reason(PON_RESTART_REASON_NORMAL);
+			__raw_writel(0x77665501, restart_reason);
+#endif
+	}
+
+	flush_cache_all();
+
+	/*outer_flush_all is not supported by 64bit kernel*/
+#ifndef CONFIG_ARM64
+	outer_flush_all();
+#endif
+
+}
+
+/*
+ * Deassert PS_HOLD to signal the PMIC that we are ready to power down or reset.
+ * Do this by calling into the secure environment, if available, or by directly
+ * writing to a hardware register.
+ *
+ * This function should never return.
+ */
+static void deassert_ps_hold(void)
+{
+	struct scm_desc desc = {
+		.args[0] = 0,
+		.arginfo = SCM_ARGS(1),
+	};
+
+	if (scm_deassert_ps_hold_supported) {
+		/* This call will be available on ARMv8 only */
+		scm_call2_atomic(SCM_SIP_FNID(SCM_SVC_PWR,
+				 SCM_IO_DEASSERT_PS_HOLD), &desc);
+	}
+
+	/* Fall-through to the direct write in case the scm_call "returns" */
+	__raw_writel(0, msm_ps_hold);
+}
+
+static void do_msm_restart(enum reboot_mode reboot_mode, const char *cmd)
+{
+	pr_notice("Going down for restart now\n");
+
+	msm_restart_prepare(cmd);
+
+#ifdef CONFIG_QCOM_DLOAD_MODE
+	/*
+	 * Trigger a watchdog bite here and if this fails,
+	 * device will take the usual restart path.
+	 */
+
+	if (WDOG_BITE_ON_PANIC && in_panic)
+		msm_trigger_wdog_bite();
+#endif
+
+	scm_disable_sdi();
+	halt_spmi_pmic_arbiter();
+	deassert_ps_hold();
+
+	msleep(10000);
+}
+
+static void do_msm_poweroff(void)
+{
+	pr_notice("Powering off the SoC\n");
+
+	set_dload_mode(0);
+	scm_disable_sdi();
+	qpnp_pon_system_pwr_off(PON_POWER_OFF_SHUTDOWN);
+
+	halt_spmi_pmic_arbiter();
+	deassert_ps_hold();
+
+	msleep(10000);
+	pr_err("Powering off has failed\n");
+}
+
+#ifdef CONFIG_QCOM_DLOAD_MODE
+>>>>>>> cda26d792a9b (ARM64: kernel: Import Xiaomi's boot info)
 static ssize_t attr_show(struct kobject *kobj, struct attribute *attr,
 				char *buf)
 {
@@ -655,9 +866,6 @@ static int msm_restart_probe(struct platform_device *pdev)
 	set_dload_mode(download_mode);
 	if (!download_mode)
 		scm_disable_sdi();
-
-	force_warm_reboot = of_property_read_bool(dev->of_node,
-						"qcom,force-warm-reboot");
 
 	return 0;
 

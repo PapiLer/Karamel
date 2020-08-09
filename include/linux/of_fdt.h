@@ -3,6 +3,7 @@
  * Definitions for working with the Flattened Device Tree data format
  *
  * Copyright 2009 Benjamin Herrenschmidt, IBM Corp
+ * Copyright (C) 2020 XiaoMi, Inc.
  * benh@kernel.crashing.org
  */
 
@@ -44,6 +45,7 @@ extern void *initial_boot_params;
 extern char __dtb_start[];
 extern char __dtb_end[];
 
+<<<<<<< HEAD
 /* Other Prototypes */
 extern u64 of_flat_dt_translate_address(unsigned long node);
 extern void of_fdt_limit_memory(int limit);
@@ -53,6 +55,12 @@ extern int of_fdt_get_ddrhbb(int channel, int rank);
 #endif /* CONFIG_OF_FLATTREE */
 
 #ifdef CONFIG_OF_EARLY_FLATTREE
+=======
+#ifdef CONFIG_BOOT_INFO
+extern void early_init_dt_setup_pureason_arch(unsigned long pu_reason);
+#endif
+
+>>>>>>> cda26d792a9b (ARM64: kernel: Import Xiaomi's boot info)
 /* For scanning the flat device-tree at boot time */
 extern int of_scan_flat_dt(int (*it)(unsigned long node, const char *uname,
 				     int depth, void *data),
