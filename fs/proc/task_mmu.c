@@ -1666,6 +1666,7 @@ const struct file_operations proc_pagemap_operations = {
 #endif /* CONFIG_PROC_PAGE_MONITOR */
 
 #ifdef CONFIG_PROCESS_RECLAIM
+<<<<<<< HEAD
 static BLOCKING_NOTIFIER_HEAD(proc_reclaim_notifier);
 
 int proc_reclaim_notifier_register(struct notifier_block *nb)
@@ -1735,6 +1736,9 @@ int reclaim_address_space(struct address_space *mapping,
 }
 
 static int reclaim_pte_range(pmd_t *pmd, unsigned long addr,
+=======
+int reclaim_pte_range(pmd_t *pmd, unsigned long addr,
+>>>>>>> e9e63513dd7c (fs: proc: Import Xiaomi changes)
 				unsigned long end, struct mm_walk *walk)
 {
 	struct reclaim_param *rp = walk->private;
@@ -1761,7 +1765,14 @@ cont:
 		if (!page)
 			continue;
 
+<<<<<<< HEAD
 		if (isolate_lru_page(compound_head(page)))
+=======
+		if (page_mapcount(page) != 1)
+			continue;
+
+		if (isolate_lru_page(page))
+>>>>>>> e9e63513dd7c (fs: proc: Import Xiaomi changes)
 			continue;
 
 		/* MADV_FREE clears pte dirty bit and then marks the page
@@ -1795,7 +1806,7 @@ cont:
 		goto cont;
 
 	cond_resched();
-	return 0;
+	return (rp->nr_to_reclaim == 0) ? -EPIPE : 0;
 }
 
 enum reclaim_type {
@@ -1885,6 +1896,7 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 	unsigned long start = 0;
 	unsigned long end = 0;
 	struct reclaim_param rp;
+	int ret;
 
 	memset(buffer, 0, sizeof(buffer));
 	if (count > sizeof(buffer) - 1)
@@ -1961,9 +1973,11 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 				continue;
 
 			rp.vma = vma;
-			walk_page_range(max(vma->vm_start, start),
+			ret = walk_page_range(max(vma->vm_start, start),
 					min(vma->vm_end, end),
 					&reclaim_walk);
+			if (ret)
+				break;
 			vma = vma->vm_next;
 		}
 	} else {
@@ -1978,8 +1992,10 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 				continue;
 
 			rp.vma = vma;
-			walk_page_range(vma->vm_start, vma->vm_end,
+			ret = walk_page_range(vma->vm_start, vma->vm_end,
 				&reclaim_walk);
+			if (ret)
+				break;
 		}
 	}
 
