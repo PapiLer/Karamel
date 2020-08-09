@@ -1,6 +1,20 @@
+<<<<<<< HEAD
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2011-2021, The Linux Foundation. All rights reserved.
+=======
+/* Copyright (c) 2011-2018, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+>>>>>>> 94dcf0b746aa (fs: pstore: Import Xiaomi changes)
  */
 
 #define pr_fmt(fmt) "subsys-restart: %s(): " fmt, __func__
@@ -1209,6 +1223,11 @@ static void device_restart_work_hdlr(struct work_struct *work)
 							dev->desc->name);
 }
 
+// xuke @ 20180611	Import pstore patch from XiaoMi.	Begin
+extern int download_mode;
+extern int in_panic;
+// End
+
 int subsystem_restart_dev(struct subsys_device *dev)
 {
 	const char *name;
@@ -1235,7 +1254,12 @@ int subsystem_restart_dev(struct subsys_device *dev)
 		pr_err("%s crashed during a system poweroff/shutdown.\n", name);
 		return -EBUSY;
 	}
-
+// xuke @ 20180611	Import pstore patch from XiaoMi.	Begin
+	if(download_mode == 0) {
+		dev->restart_level = 1;
+		in_panic = 1;
+	}
+// End
 	pr_info("Restart sequence requested for %s, restart_level = %s.\n",
 		name, restart_levels[dev->restart_level]);
 
