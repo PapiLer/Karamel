@@ -40,8 +40,11 @@
 #endif
 =======
 #include <linux/qpnp/qpnp-adc.h>
+<<<<<<< HEAD
 #include <linux/alarmtimer.h>
 >>>>>>> 5237be5c1643 (drivers: power: supply: Import Xiaomi changes)
+=======
+>>>>>>> 51e1d03016bb (power: supply: kick out xiaomi's usb timer control)
 #include "smb5-reg.h"
 #include "smb5-lib.h"
 #include "schgm-flash.h"
@@ -340,8 +343,11 @@ static int pmi632_max_icl_ua = 3000000;
 #define PM6150_MAX_FCC_UA	3000000
 =======
 #define PMI632_MAX_ICL_UA	3000000
+<<<<<<< HEAD
 #define OTG_DISABLE_TIME	(10*60*1000)	//10min
 >>>>>>> 5237be5c1643 (drivers: power: supply: Import Xiaomi changes)
+=======
+>>>>>>> 51e1d03016bb (power: supply: kick out xiaomi's usb timer control)
 static int smb5_chg_config_init(struct smb5 *chip)
 {
 	struct smb_charger *chg = &chip->chg;
@@ -952,8 +958,11 @@ static enum power_supply_property smb5_usb_props[] = {
 	POWER_SUPPLY_PROP_HVDCP_TYPE3,
 =======
 	POWER_SUPPLY_PROP_MOISTURE_DETECTED,
+<<<<<<< HEAD
 	POWER_SUPPLY_PROP_USB_OTG,
 >>>>>>> 5237be5c1643 (drivers: power: supply: Import Xiaomi changes)
+=======
+>>>>>>> 51e1d03016bb (power: supply: kick out xiaomi's usb timer control)
 };
 
 static int smb5_usb_get_prop(struct power_supply *psy,
@@ -1137,9 +1146,6 @@ static int smb5_usb_get_prop(struct power_supply *psy,
 				val->intval = 0;
 		}
 #endif
-		break;
-	case POWER_SUPPLY_PROP_USB_OTG:
-		val->intval = chg->otg_present;
 		break;
 	default:
 		pr_err("get prop %d is not supported in usb\n", psp);
@@ -1836,8 +1842,11 @@ static enum power_supply_property smb5_batt_props[] = {
 	#ifdef XIAOMI_CHARGER_RUNIN
 	POWER_SUPPLY_PROP_CHARGING_ENABLED,//lct add for runin 20181105
 	#endif
+<<<<<<< HEAD
 	POWER_SUPPLY_PROP_OTG_CTRL,
 >>>>>>> 5237be5c1643 (drivers: power: supply: Import Xiaomi changes)
+=======
+>>>>>>> 51e1d03016bb (power: supply: kick out xiaomi's usb timer control)
 };
 
 #define DEBUG_ACCESSORY_TEMP_DECIDEGC	250
@@ -2027,6 +2036,7 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 		val->intval = chg->fcc_stepper_enable;
 		break;
 <<<<<<< HEAD
+<<<<<<< HEAD
 	case POWER_SUPPLY_PROP_FVCOMP:
 		val->intval = 0;
 =======
@@ -2034,6 +2044,8 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 		val->intval = (int)chg->otg_en_ctrl;
 >>>>>>> 5237be5c1643 (drivers: power: supply: Import Xiaomi changes)
 		break;
+=======
+>>>>>>> 51e1d03016bb (power: supply: kick out xiaomi's usb timer control)
 	default:
 		pr_err("batt power supply prop %d not supported\n", psp);
 		return -EINVAL;
@@ -2045,17 +2057,6 @@ static int smb5_batt_get_prop(struct power_supply *psy,
 	}
 
 	return 0;
-}
-
-static void set_prop_otg_ctrl(struct smb_charger *chg, int value)
-{
-	chg->otg_en_ctrl = (bool)value;
-	if (value) {
-		if (chg->otg_present)
-			smb5_notify_usb_host(chg, value);
-		else
-			alarm_start_relative(&chg->otg_ctrl_timer, ms_to_ktime(OTG_DISABLE_TIME));
-	}
 }
 
 static int smb5_batt_set_prop(struct power_supply *psy,
@@ -2163,9 +2164,6 @@ static int smb5_batt_set_prop(struct power_supply *psy,
 			rc = smblib_write(chg, XIAOMI_SDM439_JEITA_FVCOMP_CFG_HOT_REG, val->intval);
 #endif
 		break;
-	case POWER_SUPPLY_PROP_OTG_CTRL:
-		set_prop_otg_ctrl(chg, val->intval);
-		break;
 	default:
 		rc = -EINVAL;
 	}
@@ -2194,8 +2192,11 @@ static int smb5_batt_prop_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT_MAX:
 =======
 	case POWER_SUPPLY_PROP_BATTERY_CHARGING_ENABLED:
+<<<<<<< HEAD
 	case POWER_SUPPLY_PROP_OTG_CTRL:
 >>>>>>> 5237be5c1643 (drivers: power: supply: Import Xiaomi changes)
+=======
+>>>>>>> 51e1d03016bb (power: supply: kick out xiaomi's usb timer control)
 		return 1;
 	default:
 		break;
@@ -3933,6 +3934,7 @@ static int smb5_show_charger_status(struct smb5 *chip)
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 /*********************************
  * TYPEC CLASS REGISTRATION *
  **********************************/
@@ -3983,6 +3985,8 @@ static enum alarmtimer_restart otg_ctrl_timer_function(struct alarm *alarm, ktim
 >>>>>>> 5237be5c1643 (drivers: power: supply: Import Xiaomi changes)
 }
 
+=======
+>>>>>>> 51e1d03016bb (power: supply: kick out xiaomi's usb timer control)
 static int smb5_probe(struct platform_device *pdev)
 {
 	struct smb5 *chip;
@@ -4018,6 +4022,7 @@ static int smb5_probe(struct platform_device *pdev)
 	chg->connector_health = -EINVAL;
 	chg->otg_present = false;
 <<<<<<< HEAD
+<<<<<<< HEAD
 	chg->main_fcc_max = -EINVAL;
 	mutex_init(&chg->adc_lock);
 #if IS_ENABLED(CONFIG_MACH_XIAOMI_SDM439)
@@ -4029,6 +4034,9 @@ static int smb5_probe(struct platform_device *pdev)
 	mutex_init(&chg->vadc_lock);
 	alarm_init(&chg->otg_ctrl_timer, ALARM_BOOTTIME, otg_ctrl_timer_function);
 >>>>>>> 5237be5c1643 (drivers: power: supply: Import Xiaomi changes)
+=======
+	mutex_init(&chg->vadc_lock);
+>>>>>>> 51e1d03016bb (power: supply: kick out xiaomi's usb timer control)
 
 	chg->regmap = dev_get_regmap(chg->dev->parent, NULL);
 	if (!chg->regmap) {
@@ -4268,10 +4276,13 @@ static int smb5_remove(struct platform_device *pdev)
 	sysfs_remove_groups(&chg->dev->kobj, smb5_groups);
 	platform_set_drvdata(pdev, NULL);
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 =======
 	alarm_cancel(&chg->otg_ctrl_timer);
 >>>>>>> 5237be5c1643 (drivers: power: supply: Import Xiaomi changes)
+=======
+>>>>>>> 51e1d03016bb (power: supply: kick out xiaomi's usb timer control)
 	return 0;
 }
 

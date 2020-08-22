@@ -146,8 +146,6 @@ static void xiaomi_sdm439_smblib_arb_monitor_work(struct work_struct *work)
 }
 #endif
 
-#define OTG_DISABLE_TIME	(10*60*1000)	//10min
-
 int smblib_read(struct smb_charger *chg, u16 addr, u8 *val)
 {
 	unsigned int value;
@@ -474,11 +472,6 @@ static void smblib_notify_usb_host(struct smb_charger *chg, bool enable)
 	}
 
 	extcon_set_state_sync(chg->extcon, EXTCON_USB_HOST, enable);
-}
-
-void smb5_notify_usb_host(struct smb_charger *chg, bool enable)
-{
-	smblib_notify_usb_host(chg, enable);
 }
 
 /********************
@@ -7722,6 +7715,7 @@ static void smblib_uusb_otg_work(struct work_struct *work)
 		goto out;
 	}
 	otg = !!(stat & U_USB_GROUND_NOVBUS_BIT);
+<<<<<<< HEAD
 	if (chg->otg_present != otg) {
 		if (otg) {
 <<<<<<< HEAD
@@ -7751,6 +7745,10 @@ static void smblib_uusb_otg_work(struct work_struct *work)
 				alarm_start_relative(&chg->otg_ctrl_timer, ms_to_ktime(OTG_DISABLE_TIME));
 		}
 	}
+=======
+	if (chg->otg_present != otg)
+		smblib_notify_usb_host(chg, otg);
+>>>>>>> 51e1d03016bb (power: supply: kick out xiaomi's usb timer control)
 	else
 >>>>>>> 5237be5c1643 (drivers: power: supply: Import Xiaomi changes)
 		goto out;
