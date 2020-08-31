@@ -1,6 +1,20 @@
+<<<<<<< HEAD
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2014-2021, The Linux Foundation. All rights reserved.
+=======
+/* Copyright (c) 2014-2018, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+>>>>>>> baa12ba23bd2 (Revert "msm: kgsl: Mark the scratch buffer as privileged")
  */
 
 #include <linux/clk/qcom.h>
@@ -1745,15 +1759,12 @@ static int a5xx_post_start(struct adreno_device *adreno_dev)
 		*cmds++ = 0xF;
 	}
 
-	if (adreno_is_preemption_enabled(adreno_dev)) {
+	if (adreno_is_preemption_enabled(adreno_dev))
 		cmds += _preemption_init(adreno_dev, rb, cmds, NULL);
-		rb->_wptr = rb->_wptr - (42 - (cmds - start));
-		ret = adreno_ringbuffer_submit_spin_nosync(rb, NULL, 2000);
-	} else {
-		rb->_wptr = rb->_wptr - (42 - (cmds - start));
-		ret = adreno_ringbuffer_submit_spin(rb, NULL, 2000);
-	}
 
+	rb->_wptr = rb->_wptr - (42 - (cmds - start));
+
+	ret = adreno_ringbuffer_submit_spin(rb, NULL, 2000);
 	if (ret)
 		adreno_spin_idle_debug(adreno_dev,
 				"hw initialization failed to idle\n");
@@ -2063,7 +2074,7 @@ static int _load_firmware(struct kgsl_device *device, const char *fwfile,
 
 	memcpy(firmware->memdesc.hostptr, &fw->data[4], fw->size - 4);
 	firmware->size = (fw->size - 4) / sizeof(uint32_t);
-	firmware->version = adreno_get_ucode_version((u32 *)fw->data);
+	firmware->version = *(unsigned int *)&fw->data[4];
 
 done:
 	release_firmware(fw);

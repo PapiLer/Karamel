@@ -1,7 +1,21 @@
+<<<<<<< HEAD
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2002,2007-2021, The Linux Foundation. All rights reserved.
  * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+=======
+/* Copyright (c) 2002,2007-2018, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+>>>>>>> baa12ba23bd2 (Revert "msm: kgsl: Mark the scratch buffer as privileged")
  */
 #include <linux/delay.h>
 #include <linux/input.h>
@@ -4079,6 +4093,7 @@ static void adreno_gpu_model(struct kgsl_device *device, char *str,
 			 ADRENO_CHIPID_PATCH(adreno_dev->chipid) + 1);
 }
 
+<<<<<<< HEAD
 static bool adreno_is_hwcg_on(struct kgsl_device *device)
 {
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
@@ -4099,6 +4114,8 @@ u32 adreno_get_ucode_version(const u32 *data)
 	return  version | ((data[3] & 0xfff000) >> 12);
 }
 
+=======
+>>>>>>> baa12ba23bd2 (Revert "msm: kgsl: Mark the scratch buffer as privileged")
 static const struct kgsl_functable adreno_functable = {
 	/* Mandatory functions */
 	.regread = adreno_regread,

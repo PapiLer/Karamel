@@ -1,7 +1,21 @@
+<<<<<<< HEAD
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2008-2021, The Linux Foundation. All rights reserved.
  * Copyright (c) 2022-2023, Qualcomm Innovation Center, Inc. All rights reserved.
+=======
+/* Copyright (c) 2008-2018, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+>>>>>>> baa12ba23bd2 (Revert "msm: kgsl: Mark the scratch buffer as privileged")
  */
 #ifndef __ADRENO_H
 #define __ADRENO_H
@@ -284,8 +298,8 @@ enum adreno_preempt_states {
 /**
  * struct adreno_preemption
  * @state: The current state of preemption
- * @scratch: Memory descriptor for the memory where the GPU writes the
- * current ctxt record address and preemption counters on switch
+ * @counters: Memory descriptor for the memory where the GPU writes the
+ * preemption counters on switch
  * @timer: A timer to make sure preemption doesn't stall
  * @work: A work struct for the preemption worker (for 5XX)
  * preempt_level: The level of preemption (for 6XX)
@@ -296,7 +310,7 @@ enum adreno_preempt_states {
  */
 struct adreno_preemption {
 	atomic_t state;
-	struct kgsl_memdesc scratch;
+	struct kgsl_memdesc counters;
 	struct timer_list timer;
 	struct work_struct work;
 	unsigned int preempt_level;
@@ -1134,11 +1148,15 @@ void adreno_cx_misc_regwrite(struct adreno_device *adreno_dev,
 void adreno_cx_misc_regrmw(struct adreno_device *adreno_dev,
 		unsigned int offsetwords,
 		unsigned int mask, unsigned int bits);
+<<<<<<< HEAD
 void adreno_rscc_regread(struct adreno_device *adreno_dev,
 		unsigned int offsetwords, unsigned int *value);
 void adreno_isense_regread(struct adreno_device *adreno_dev,
 		unsigned int offsetwords, unsigned int *value);
 u32 adreno_get_ucode_version(const u32 *data);
+=======
+
+>>>>>>> baa12ba23bd2 (Revert "msm: kgsl: Mark the scratch buffer as privileged")
 
 
 #define ADRENO_TARGET(_name, _id) \

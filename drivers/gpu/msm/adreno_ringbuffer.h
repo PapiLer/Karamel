@@ -1,6 +1,20 @@
+<<<<<<< HEAD
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2002,2007-2020, The Linux Foundation. All rights reserved.
+=======
+/* Copyright (c) 2002,2007-2019, The Linux Foundation. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+>>>>>>> baa12ba23bd2 (Revert "msm: kgsl: Mark the scratch buffer as privileged")
  */
 #ifndef __ADRENO_RINGBUFFER_H
 #define __ADRENO_RINGBUFFER_H
@@ -164,9 +178,6 @@ int adreno_ringbuffer_issue_internal_cmds(struct adreno_ringbuffer *rb,
 
 void adreno_ringbuffer_submit(struct adreno_ringbuffer *rb,
 		struct adreno_submit_time *time);
-
-int adreno_ringbuffer_submit_spin_nosync(struct adreno_ringbuffer *rb,
-		struct adreno_submit_time *time, unsigned int timeout);
 
 int adreno_ringbuffer_submit_spin(struct adreno_ringbuffer *rb,
 		struct adreno_submit_time *time, unsigned int timeout);
