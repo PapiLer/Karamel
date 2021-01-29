@@ -16,11 +16,11 @@ git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/
 #git clone https://github.com/arter97/arm32-gcc.git --depth=1 gcc32
 
 # Clone AnyKernel3
-git clone https://github.com/MumetNgoding/AnyKernel3.git -b master
+git clone https://github.com/Risti699/AnyKernel3.git -b master
 
 #Download Clang
 if [ ! -d clang ]; then
-    git clone https://github.com/silont-project/silont-clang.git --depth=1
+    git clone https://github.com/gengkapak/gengkapak-clang.git --depth=1
 #    git clone https://github.com/arter97/arm64-gcc.git --depth=1
 #    git clone https://github.com/arter97/arm32-gcc.git --depth=1
 #    git clone https://github.com/MumetNgoding/proton-clang.git --depth=1
