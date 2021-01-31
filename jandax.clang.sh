@@ -85,8 +85,8 @@ GITHUB_URL="https://github.com/Risti699/JandaX-AOSP/commits/"
 COMMIT=$(git log --pretty=format:'%h: %s' -1)
 
 # Get Script Source
-./telegram -f "$(echo -e SiLonT-*.zip)" "$(echo ⚒️  [*BUILDING*] ⚒️  ️$'\n' HEAD MESSAGE:$'\n' $COMMIT $'\n' COMMIT URL: $'\n' ${GITHUB_URL}${HEAD_COMMIT} $'\n' DATE: $'\n' $KBUILD_BUILD_TIMESTAMP $'\n' BUILD USING: $'\n' $CPU $'\n' CC AUTHOR: $'\n' @BryanHafidzTorvalds $'\n' DURATION: $'\n' $DURATION Seconds $'\n' ⚒️  [*COMPLETE*] ⚒️  )"
-rm "$(echo SiLonT-*.zip)"
+./telegram -f "$(echo -e JandaX-AOSP-*.zip)" "$(echo ⚒️  [*BUILDING*] ⚒️  ️$'\n' HEAD MESSAGE:$'\n' $COMMIT $'\n' COMMIT URL: $'\n' ${GITHUB_URL}${HEAD_COMMIT} $'\n' DATE: $'\n' $KBUILD_BUILD_TIMESTAMP $'\n' BUILD USING: $'\n' $CPU $'\n' CC AUTHOR: $'\n' @BryanHafidzTorvalds $'\n' DURATION: $'\n' $DURATION Seconds $'\n' ⚒️  [*COMPLETE*] ⚒️  )"
+rm "$(echo JandaX-AOSP-*.zip)"
 rm telegram
 echo -e "\n(!) Done Push to Telegram"
 # Build end
