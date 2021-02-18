@@ -12,8 +12,8 @@
 # Clone toolchain
 #git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 -b android-10.0.0_r41 --depth=1 stock
 #git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9 -b android-10.0.0_r41 --depth=1 stock_32
-git clone https://github.com/silont-project/arm-silont-linux-gnueabi.git --depth=1 arm/10
-git clone https://github.com/silont-project/aarch64-silont-linux-gnu.git --depth=1 arm64/10
+git clone https://github.com/silont-project/arm-silont-linux-gnueabi.git -b arm/10 --depth=1 stock_32
+git clone https://github.com/silont-project/aarch64-silont-linux-gnu.git -b arm64/10 --depth=1 stock
 
 # Clone AnyKernel3
 git clone https://github.com/Risti699/AnyKernel3.git -b AOSP
