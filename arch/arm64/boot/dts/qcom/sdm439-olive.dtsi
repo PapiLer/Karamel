@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2018-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -11,15 +12,17 @@
  * GNU General Public License for more details.
  */
 
-#include "msm8937.dtsi"
-#include "sdm439-pm8953.dtsi"
-#include "sdm439-pmi632.dtsi"
-#include "sdm439-audio.dtsi"
+#include "msm8937-olive.dtsi"
+#include "sdm439-pm8953-olive.dtsi"
+#include "sdm439-pmi632-olive.dtsi"
+#include "sdm439-audio-olive.dtsi"
+#include "sdm439-mtp.dtsi"
+#include "sdm439-ctp-olive.dtsi"
 
 / {
 	model = "Qualcomm Technologies, Inc. SDM439";
 	compatible = "qcom,sdm439";
-	qcom,msm-id = <353 0x0>;
+	qcom,msm-id = <353 0x10008>;
 };
 
 &soc {
@@ -70,6 +73,13 @@
 			 < 1171200 >,
 			 < 1305600 >,
 			 < 1459200 >;
+	};
+
+	sn_fuse: snfuse@0xa4128 {
+		compatible = "qcom,sn-fuse";
+		reg = <0xa4128 0x4>,
+		      <0x00a0120 0x4>;
+		reg-names = "sn-base","cfi-base";
 	};
 
 	/delete-node/ qcom,cpubw;
@@ -247,6 +257,12 @@
 		alignment = <0 0x400000>;
 		size = <0 0x800000>;
 	};
+
+	pstore_reserve_mem: pstore_reserve_mem_region@0 {
+		compatible = "removed-dma-pool";
+		no-map;
+		reg = <0x0 0x9ff00000 0x0 0x00100000>;
+	};
 };
 
 &modem_mem {
@@ -254,11 +270,11 @@
 };
 
 &adsp_fw_mem {
-	reg = <0x0 0x8bd00000 0x0 0x1100000>;
+	reg = <0x0 0x8bd00000 0x0 0x1800000>;
 };
 
 &wcnss_fw_mem {
-	reg = <0x0 0x8ce00000 0x0 0x700000>;
+	reg = <0x0 0x8d500000 0x0 0x700000>;
 };
 
 &soc {
@@ -285,6 +301,17 @@
 		compatible = "qcom,smmu-kgsl-cb";
 		iommus = <&kgsl_smmu 2>;
 		memory-region = <&secure_mem>;
+	};
+};
+
+&spi_6 {
+	status = "ok";
+	irled@0 {
+		compatible = "ir-spi";
+		reg = <0x0>;
+		vdd-supply = <&pm8953_l8>; //vdd
+		status = "ok";
+		spi-max-frequency = <19200000>;
 	};
 };
 
@@ -732,5 +759,5 @@
 };
 
 &usb_otg {
-	qcom,hsusb-otg-phy-init-seq = <0x43 0x80 0x06 0x82 0xffffffff>;
+	qcom,hsusb-otg-phy-init-seq =  <0x43 0x80 0x37 0x81 0x76 0x82 0xffffffff>;
 };
