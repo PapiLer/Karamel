@@ -149,9 +149,14 @@ do {                                                    \
 #define FW_READ_ATTEMPTS 15
 #define FW_READ_TIMEOUT 4000000
 #define FAKE_REM_RETRY_ATTEMPTS 3
-#define MAX_IMPED 60000
+#define MAX_IMPED 200000
 
-#define WCD_MBHC_BTN_PRESS_COMPL_TIMEOUT_MS  50
+//#ifdef AW87519_PA
+#define WCD_MBHC_BTN_PRESS_COMPL_TIMEOUT_MS  250
+//#else
+//#define WCD_MBHC_BTN_PRESS_COMPL_TIMEOUT_MS  50
+//#endif
+
 #define ANC_DETECT_RETRY_CNT 7
 #define WCD_MBHC_SPL_HS_CNT  1
 
