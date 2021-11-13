@@ -11,6 +11,7 @@
  */
 
 #include <linux/scatterlist.h>
+#include <linux/ratelimit.h>
 #include <crypto/skcipher.h>
 #include "fscrypt_private.h"
 
@@ -275,9 +276,11 @@ int fscrypt_fname_disk_to_usr(struct inode *inode,
 					   oname->name);
 		return 0;
 	}
-	memcpy(buf, &hash, 4);
-	memcpy(buf + 4, &minor_hash, 4);
-	memcpy(buf + 8, iname->name + ((iname->len - 17) & ~15), 16);
+	digested_name.hash = hash;
+	digested_name.minor_hash = minor_hash;
+	memcpy(digested_name.digest,
+	       FSCRYPT_FNAME_DIGEST(iname->name, iname->len),
+	       FSCRYPT_FNAME_DIGEST_SIZE);
 	oname->name[0] = '_';
 	oname->len = 1 + digest_encode((const char *)&digested_name,
 				       sizeof(digested_name), oname->name + 1);

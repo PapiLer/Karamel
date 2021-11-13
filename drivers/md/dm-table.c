@@ -1566,7 +1566,6 @@ static bool dm_table_all_devices_attribute(struct dm_table *t,
 	}
 
 	return true;
-	return q && test_bit(QUEUE_FLAG_NO_SG_MERGE, &q->queue_flags);
 }
 
 static int device_not_write_same_capable(struct dm_target *ti, struct dm_dev *dev,
