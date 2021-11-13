@@ -16,7 +16,7 @@ git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/
 #git clone https://github.com/silont-project/aarch64-silont-linux-gnu.git -b arm64/10 --depth=1 stock
 
 # Clone AnyKernel3
-git clone https://github.com/Risti699/AnyKernel3.git -b AOSP
+git clone https://github.com/Risti699/AnyKernel3.git -b master
 
 #Download Clang
 if [ ! -d clang ]; then
