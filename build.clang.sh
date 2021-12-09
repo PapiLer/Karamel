@@ -81,11 +81,11 @@ KBUILD_BUILD_TIMESTAMP=$(date)
 export KBUILD_BUILD_TIMESTAMP
 CPU=$(lscpu | sed -nr '/Model name/ s/.*:\s*(.*) @ .*/\1/p')
 HEAD_COMMIT="$(git rev-parse HEAD)"
-GITHUB_URL="https://github.com/Risti699/JFla/commits/"
+GITHUB_URL="https://github.com/Risti699/Kernul-onclite/tree/JFla-Karamel/commits/"
 COMMIT=$(git log --pretty=format:'%h: %s' -1)
 
 # Get Script Source
-./telegram -f "$(echo -e JFla-Karamel*.zip)" "$(echo ⚒️  [*BUILDING*] ⚒️  ️$'\n' HEAD MESSAGE:$'\n' $COMMIT $'\n' COMMIT URL: $'\n' ${GITHUB_URL}${HEAD_COMMIT} $'\n' DATE: $'\n' $KBUILD_BUILD_TIMESTAMP $'\n' BUILD USING: $'\n' $CPU $'\n' CC AUTHOR: $'\n' @BryanHafidzTorvalds $'\n' DURATION: $'\n' $DURATION Seconds $'\n' ⚒️  [*COMPLETE*] ⚒️  )"
+./telegram -f "$(echo -e JFla-Karamel*.zip)" "$(echo ___  [*BUILDING*] ___  ️$'\n' HEAD MESSAGE:$'\n' $COMMIT $'\n' COMMIT URL: $'\n' ${GITHUB_URL}${HEAD_COMMIT} $'\n' DATE: $'\n' $KBUILD_BUILD_TIMESTAMP $'\n' BUILD USING: $'\n' $CPU $'\n' CC AUTHOR: $'\n' @kaguyaasama $'\n' DURATION: $'\n' $DURATION Seconds $'\n' ___  [*COMPLETE*] ___  )"
 rm "$(echo JFla-Karamel*.zip)"
 rm telegram
 echo -e "\n(!) Done Push to Telegram"
