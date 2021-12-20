@@ -17,7 +17,7 @@ ZIP_DIR=$KERNEL_DIR/AnyKernel3
 CONFIG=onc_defconfig
 CROSS_COMPILE="aarch64-linux-android-"
 CROSS_COMPILE_ARM32="arm-linux-androideabi-"
-PATH=:"${KERNEL_DIR}/gengkapak-clang/bin:${PATH}:${KERNEL_DIR}/stock/bin:${PATH}:${KERNEL_DIR}/stock_32/bin:${PATH}"
+PATH=:"${KERNEL_DIR}/clang-gengkapak/bin:${PATH}:${KERNEL_DIR}/stock/bin:${PATH}:${KERNEL_DIR}/stock_32/bin:${PATH}"
 
 # Export
 export ARCH=arm64
