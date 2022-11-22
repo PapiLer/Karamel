@@ -1344,7 +1344,7 @@ static inline int all_pipes_suspended(enum usb_ctrl cur_bam)
 	return info[cur_bam].pipes_suspended == ctx->pipes_enabled_per_bam;
 }
 
-static void usb_bam_finish_suspend(enum usb_ctrl cur_bam)
+static void usb_bam_finish_suspend(int cur_bam)
 {
 	int ret, bam2bam;
 	u32 cons_empty, idx, dst_idx;
@@ -1473,7 +1473,7 @@ no_lpm:
 
 void usb_bam_finish_suspend_(struct work_struct *w)
 {
-	enum usb_ctrl cur_bam;
+	int cur_bam;
 	struct usb_bam_ipa_handshake_info *info_ptr;
 
 	info_ptr = container_of(w, struct usb_bam_ipa_handshake_info,
@@ -3300,7 +3300,7 @@ static int usb_bam_probe(struct platform_device *pdev)
 	mutex_init(&info[bam_type].suspend_resume_mutex);
 
 	ctx->usb_bam_wq = alloc_workqueue("usb_bam_wq",
-		WQ_UNBOUND | WQ_MEM_RECLAIM, 1);
+		WQ_UNBOUND | WQ_POWER_EFFICIENT | WQ_HIGHPRI | WQ_MEM_RECLAIM, 1);
 	if (!ctx->usb_bam_wq) {
 		log_event_err("unable to create workqueue usb_bam_wq\n");
 		return -ENOMEM;

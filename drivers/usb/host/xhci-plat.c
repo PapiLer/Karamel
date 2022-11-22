@@ -500,6 +500,8 @@ static int xhci_plat_runtime_resume(struct device *dev)
 	pm_runtime_mark_last_busy(dev);
 
 	return ret;
+
+	return xhci_resume(xhci, 0);
 }
 
 static const struct dev_pm_ops xhci_plat_pm_ops = {

@@ -19,9 +19,24 @@
 #include <linux/of_gpio.h>
 #include <video/mipi_display.h>
 #include <linux/firmware.h>
+#ifdef CONFIG_STATE_NOTIFIER
+#include <linux/state_notifier.h>
+#endif
 
+#include <linux/display_state.h>
 #include "dsi_panel.h"
 #include "dsi_ctrl_hw.h"
+
+#include <linux/fs.h>
+#include <asm/uaccess.h>
+#include <asm/fcntl.h>
+
+#include <drm/drm_notifier.h>
+#include <soc/qcom/socinfo.h>
+
+#ifdef CONFIG_KLAPSE
+#include <linux/klapse.h>
+#endif
 
 /**
  * topology is currently defined by a set of following 3 values:
@@ -49,6 +64,13 @@ enum dsi_dsc_ratio_type {
 	DSC_12BPC_8BPP,
 	DSC_RATIO_TYPE_MAX
 };
+
+bool display_on = true;
+
+bool is_display_on()
+{
+	return display_on;
+}
 
 static u32 dsi_dsc_rc_buf_thresh[] = {0x0e, 0x1c, 0x2a, 0x38, 0x46, 0x54,
 		0x62, 0x69, 0x70, 0x77, 0x79, 0x7b, 0x7d, 0x7e};
@@ -700,6 +722,10 @@ error_disable_vregs:
 	(void)dsi_pwr_enable_regulator(&panel->power_info, false);
 
 exit:
+#ifdef CONFIG_STATE_NOTIFIER
+	state_resume();
+#endif
+
 	return rc;
 }
 
@@ -727,6 +753,10 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 	rc = dsi_pwr_enable_regulator(&panel->power_info, false);
 	if (rc)
 		pr_err("[%s] failed to enable vregs, rc=%d\n", panel->name, rc);
+
+#ifdef CONFIG_STATE_NOTIFIER
+	state_suspend();
+#endif
 
 	return rc;
 }
@@ -904,6 +934,10 @@ int dsi_panel_set_backlight(struct dsi_panel *panel, u32 bl_lvl)
 		pr_err("Backlight type(%d) not supported\n", bl->type);
 		rc = -ENOTSUPP;
 	}
+	
+#ifdef CONFIG_KLAPSE
+	set_rgb_slider(bl_lvl);
+#endif
 
 	return rc;
 }

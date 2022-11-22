@@ -212,7 +212,7 @@ void msm_isp_get_timestamp(struct msm_isp_timestamp *time_stamp,
 		time_stamp->buf_time.tv_sec    = time_stamp->vt_time.tv_sec;
 		time_stamp->buf_time.tv_usec   = time_stamp->vt_time.tv_usec;
 	} else {
-		get_monotonic_boottime(&ts);
+		ktime_get_ts(&ts);
 		time_stamp->buf_time.tv_sec    = ts.tv_sec;
 		time_stamp->buf_time.tv_usec   = ts.tv_nsec/1000;
 	}
@@ -1498,6 +1498,7 @@ int msm_isp_proc_cmd(struct vfe_device *vfe_dev, void *arg)
 	reg_cfg_cmd = kzalloc(sizeof(struct msm_vfe_reg_cfg_cmd)*
 		proc_cmd->num_cfg, GFP_KERNEL);
 	if (!reg_cfg_cmd) {
+		pr_err("%s: reg_cfg alloc failed\n", __func__);
 		rc = -ENOMEM;
 		goto reg_cfg_failed;
 	}

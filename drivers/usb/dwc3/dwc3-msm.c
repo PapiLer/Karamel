@@ -1,4 +1,5 @@
-/* Copyright (c) 2012-2020, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2019, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2020 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -55,6 +56,10 @@
 #include "dbm.h"
 #include "debug.h"
 #include "xhci.h"
+
+#define DWC3_IDEV_CHG_MAX 3000
+#define DWC3_HVDCP_CHG_MAX 3000
+
 #ifdef CONFIG_TUSB1064_XR_MISC
 #include "../../misc/tusb1064.h"
 #endif
@@ -3865,13 +3870,7 @@ static int dwc3_msm_probe(struct platform_device *pdev)
 		goto uninit_iommu;
 	}
 
-	ret = of_platform_populate(node, NULL, NULL, &pdev->dev);
-	if (ret) {
-		dev_err(&pdev->dev,
-				"failed to add create dwc3 core\n");
-		of_node_put(dwc3_node);
-		goto uninit_iommu;
-	}
+	of_platform_device_create(dwc3_node, NULL, &pdev->dev);
 
 	mdwc->dwc3 = of_find_device_by_node(dwc3_node);
 	of_node_put(dwc3_node);
@@ -4020,7 +4019,6 @@ uninit_iommu:
 		arm_iommu_detach_device(mdwc->dev);
 		arm_iommu_release_mapping(mdwc->iommu_map);
 	}
-	of_platform_depopulate(&pdev->dev);
 err:
 	destroy_workqueue(mdwc->dwc3_wq);
 	return ret;
@@ -4562,6 +4560,7 @@ static int dwc3_msm_gadget_vbus_draw(struct dwc3_msm *mdwc, unsigned int mA)
 	union power_supply_propval pval = {0};
 	int ret, psy_type;
 
+	dev_info(mdwc->dev,"dwc3_msm_gadget_vbus_draw %u\n",mA);
 	psy_type = get_psy_type(mdwc);
 	if (psy_type == POWER_SUPPLY_TYPE_USB_FLOAT) {
 		if (!mA)
@@ -4571,8 +4570,11 @@ static int dwc3_msm_gadget_vbus_draw(struct dwc3_msm *mdwc, unsigned int mA)
 		goto set_prop;
 	}
 
-	if (mdwc->max_power == mA || psy_type != POWER_SUPPLY_TYPE_USB)
+	if (mdwc->max_power == mA || ((psy_type != POWER_SUPPLY_TYPE_USB) && (psy_type != POWER_SUPPLY_TYPE_USB_CDP)))
 		return 0;
+
+	if((psy_type == POWER_SUPPLY_TYPE_USB_CDP) && (mA > 100))
+		mA = 1500;
 
 	dev_info(mdwc->dev, "Avail curr from USB = %u\n", mA);
 	/* Set max current limit in uA */
@@ -4668,6 +4670,17 @@ static void dwc3_otg_sm_work(struct work_struct *w)
 				atomic_read(&mdwc->dev->power.usage_count));
 			dwc3_otg_start_peripheral(mdwc, 1);
 			mdwc->drd_state = DRD_STATE_PERIPHERAL;
+
+            if(!dwc->softconnect && get_psy_type(mdwc) == POWER_SUPPLY_TYPE_USB_CDP) {
+                u32 reg;
+                dbg_event(0xFF, "cdp pullup dp", 0);
+
+                reg = dwc3_readl(dwc->regs, DWC3_DCTL);
+                reg |= DWC3_DCTL_RUN_STOP;
+                dwc3_writel(dwc->regs, DWC3_DCTL, reg);
+                break;
+            }
+
 			work = 1;
 		} else {
 			dwc3_msm_gadget_vbus_draw(mdwc, 0);

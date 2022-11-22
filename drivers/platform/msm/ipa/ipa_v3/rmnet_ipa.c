@@ -728,8 +728,7 @@ static int ipa3_wwan_add_ul_flt_rule_to_ipa(void)
 		retval = -EFAULT;
 	}
 
-	req->install_status = (enum ipa_qmi_result_type_v01)
-							QMI_RESULT_SUCCESS_V01;
+	req->install_status = IPA_QMI_RESULT_SUCCESS_V01;
 	req->rule_id_valid = 1;
 	req->rule_id_len = rmnet_ipa3_ctx->num_q6_rules;
 	for (i = 0; i < rmnet_ipa3_ctx->num_q6_rules; i++) {
@@ -2852,7 +2851,8 @@ static void tethering_stats_poll_queue(struct work_struct *work)
 
 	/* Schedule again only if there's an active polling interval */
 	if (ipa3_rmnet_ctx.polling_interval != 0)
-		schedule_delayed_work(&ipa_tether_stats_poll_wakequeue_work,
+		queue_delayed_work(system_power_efficient_wq,
+			&ipa_tether_stats_poll_wakequeue_work,
 			msecs_to_jiffies(ipa3_rmnet_ctx.polling_interval*1000));
 }
 
@@ -2946,7 +2946,8 @@ int rmnet_ipa3_poll_tethering_stats(struct wan_ioctl_poll_tethering_stats *data)
 		return 0;
 	}
 
-	schedule_delayed_work(&ipa_tether_stats_poll_wakequeue_work, 0);
+	queue_delayed_work(system_power_efficient_wq,
+						&ipa_tether_stats_poll_wakequeue_work, 0);
 	return 0;
 }
 

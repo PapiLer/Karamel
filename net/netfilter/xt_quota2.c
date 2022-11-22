@@ -91,26 +91,6 @@ static void quota2_work(struct work_struct *work)
 	kobject_uevent_env(quota_kobj, KOBJ_CHANGE, envp);
 }
 
-static void quota2_log(const struct net_device *in,
-		       const struct net_device *out,
-		       struct  xt_quota_counter *q,
-		       const char *prefix)
-{
-	if (!prefix)
-		return;
-
-	strlcpy(q->last_prefix, prefix, QUOTA2_SYSFS_WORK_MAX_SIZE);
-
-	if (in)
-		strlcpy(q->last_iface, in->name, QUOTA2_SYSFS_WORK_MAX_SIZE);
-	else if (out)
-		strlcpy(q->last_iface, out->name, QUOTA2_SYSFS_WORK_MAX_SIZE);
-	else
-		strlcpy(q->last_iface, "UNKNOWN", QUOTA2_SYSFS_WORK_MAX_SIZE);
-
-	schedule_work(&q->work);
-}
-
 static ssize_t quota_proc_read(struct file *file, char __user *buf,
 			   size_t size, loff_t *ppos)
 {
@@ -282,6 +262,8 @@ quota_mt2(const struct sk_buff *skb, struct xt_action_param *par)
 {
 	struct xt_quota_mtinfo2 *q = (void *)par->matchinfo;
 	struct xt_quota_counter *e = q->master;
+	int charge = (q->flags & XT_QUOTA_PACKET) ? 1 : skb->len;
+	bool no_change = q->flags & XT_QUOTA_NO_CHANGE;
 	bool ret = q->flags & XT_QUOTA_INVERT;
 
 	spin_lock_bh(&e->lock);
@@ -290,20 +272,15 @@ quota_mt2(const struct sk_buff *skb, struct xt_action_param *par)
 		 * While no_change is pointless in "grow" mode, we will
 		 * implement it here simply to have a consistent behavior.
 		 */
-		if (!(q->flags & XT_QUOTA_NO_CHANGE)) {
-			e->quota += (q->flags & XT_QUOTA_PACKET) ? 1 : skb->len;
-		}
-		ret = true;
+		if (!no_change)
+			e->quota += charge;
+		ret = true; /* note: does not respect inversion (bug??) */
 	} else {
-		if (e->quota >= skb->len) {
-			if (!(q->flags & XT_QUOTA_NO_CHANGE))
-				e->quota -= (q->flags & XT_QUOTA_PACKET) ? 1 : skb->len;
+		if (e->quota > charge) {
+			if (!no_change)
+				e->quota -= charge;
 			ret = !ret;
-		} else {
-			/* We are transitioning, log that fact. */
-			if (e->quota) {
-				quota2_log(par->in, par->out, e, q->name);
-			}
+		} else if (e->quota) {
 			/* we do not allow even small packets from now on */
 			e->quota = 0;
 		}

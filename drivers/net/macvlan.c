@@ -234,7 +234,7 @@ static void macvlan_broadcast(struct sk_buff *skb,
 			      struct net_device *src,
 			      enum macvlan_mode mode)
 {
-	const struct ethhdr *eth = eth_hdr(skb);
+	const struct ethhdr *eth = skb_eth_hdr(skb);
 	const struct macvlan_dev *vlan;
 	struct sk_buff *nskb;
 	unsigned int i;
@@ -420,6 +420,10 @@ static rx_handler_result_t macvlan_handle_frame(struct sk_buff **pskb)
 	unsigned int len = 0;
 	int ret;
 	rx_handler_result_t handle_res;
+
+	/* Packets from dev_loopback_xmit() do not have L2 header, bail out */
+	if (unlikely(skb->pkt_type == PACKET_LOOPBACK))
+		return RX_HANDLER_PASS;
 
 	port = macvlan_port_get_rcu(skb->dev);
 	if (is_multicast_ether_addr(eth->h_dest)) {

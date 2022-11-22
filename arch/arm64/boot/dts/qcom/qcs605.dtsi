@@ -18,19 +18,28 @@
 	qcom,msm-id = <347 0x0>;
 };
 
+&removed_region {
+	reg = <0 0x85fc0000 0 0x1540000>;
+};
+
+&pil_camera_mem {
+	reg = <0 0x8b800000 0 0x500000>;
+};
+
 &pil_modem_mem {
-	reg = <0 0x8b000000 0 0x3100000>;
+	reg = <0 0x8bd00000 0 0x3100000>;
 };
 
 &pil_video_mem {
-	reg = <0 0x8e100000 0 0x500000>;
+	reg = <0 0x8ee00000 0 0x500000>;
 };
 
 &wlan_msa_mem {
-	reg = <0 0x8e600000 0 0x100000>;
+	reg = <0 0x8f300000 0 0x100000>;
 };
 
 &pil_cdsp_mem {
+
 	reg = <0 0x8e700000 0 0x900000>;
 };
 
@@ -59,7 +68,7 @@
 };
 
 &secure_display_memory {
-	size = <0 0xa000000>;
+	status = "disabled";
 };
 
 &qcom_seecom {

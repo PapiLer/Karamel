@@ -401,10 +401,10 @@ static void thermal_zone_device_set_polling(struct workqueue_struct *queue,
 					    int delay)
 {
 	if (delay > 1000)
-		mod_delayed_work(queue, &tz->poll_queue,
+		mod_delayed_work(system_freezable_power_efficient_wq, &tz->poll_queue,
 				 round_jiffies(msecs_to_jiffies(delay)));
 	else if (delay)
-		mod_delayed_work(queue, &tz->poll_queue,
+		mod_delayed_work(system_freezable_power_efficient_wq, &tz->poll_queue,
 				 msecs_to_jiffies(delay));
 	else
 		cancel_delayed_work(&tz->poll_queue);
@@ -600,7 +600,7 @@ static void update_temperature(struct thermal_zone_device *tz)
 	ret = thermal_zone_get_temp(tz, &temp);
 	if (ret) {
 		if (ret != -EAGAIN)
-			dev_warn(&tz->device,
+			dev_dbg(&tz->device,
 				 "failed to read out thermal zone (%d)\n",
 				 ret);
 		return;
@@ -612,6 +612,8 @@ static void thermal_zone_device_init(struct thermal_zone_device *tz)
 {
 	struct thermal_instance *pos;
 	tz->temperature = THERMAL_TEMP_INVALID;
+	tz->prev_low_trip = -INT_MAX;
+	tz->prev_high_trip = INT_MAX;
 	list_for_each_entry(pos, &tz->thermal_instances, tz_node)
 		pos->initialized = false;
 }
@@ -679,6 +681,61 @@ static void thermal_zone_device_check(struct work_struct *work)
 
 #define to_thermal_zone(_dev) \
 	container_of(_dev, struct thermal_zone_device, device)
+
+#ifdef CONFIG_THERMAL_SWITCH
+#define to_thermal_msg_device(_dev)	\
+	container_of(_dev, struct thermal_message_device, device)
+
+static ssize_t
+temp_state_show(struct device *dev, struct device_attribute *devattr,
+		       char *buf){
+	struct thermal_message_device *thermal_msg = to_thermal_msg_device(dev);
+
+	return sprintf(buf,"%d\n",thermal_msg->temp_state);
+}
+
+static ssize_t
+temp_state_store(struct device *dev, struct device_attribute *devattr,
+		const char *buf, size_t count){
+	int temp_state;
+	struct thermal_message_device *thermal_msg = to_thermal_msg_device(dev);
+
+	if (kstrtoint(buf,10,&temp_state))
+		return -EINVAL;
+
+	thermal_msg->temp_state = temp_state;
+
+	return count;
+}
+
+static DEVICE_ATTR(temp_state,0644,temp_state_show,temp_state_store);
+
+
+static ssize_t
+sconfig_show(struct device *dev, struct device_attribute *devattr,
+		       char *buf){
+	struct thermal_message_device *thermal_msg = to_thermal_msg_device(dev);
+
+	return sprintf(buf,"%d\n",thermal_msg->sconfig);
+}
+
+static ssize_t
+sconfig_store(struct device *dev, struct device_attribute *devattr,
+		const char *buf, size_t count){
+	int sconfig;
+
+	struct thermal_message_device *thermal_msg = to_thermal_msg_device(dev);
+
+	if (kstrtoint(buf,10,&sconfig))
+		return -EINVAL;
+
+	thermal_msg->sconfig = sconfig;
+
+	return count;
+}
+
+static DEVICE_ATTR(sconfig,0644,sconfig_show,sconfig_store);
+#endif //CONFIG_THERMAL_SWITCH
 
 static ssize_t
 type_show(struct device *dev, struct device_attribute *attr, char *buf)
@@ -2327,7 +2384,7 @@ unregister:
 EXPORT_SYMBOL_GPL(thermal_zone_device_register);
 
 /**
- * thermal_device_unregister - removes the registered thermal zone device
+ * thermal_zone_device_unregister - removes the registered thermal zone device
  * @tz: the thermal zone device to remove
  */
 void thermal_zone_device_unregister(struct thermal_zone_device *tz)
@@ -2639,6 +2696,45 @@ static struct notifier_block thermal_pm_nb = {
 	.notifier_call = thermal_pm_notify,
 };
 
+#ifdef CONFIG_THERMAL_SWITCH
+int thermal_message_device_register(void) {
+	struct thermal_message_device *thermal_msg;
+	int result = 0;
+
+	thermal_msg = kzalloc(sizeof(struct thermal_message_device),GFP_KERNEL);
+	thermal_msg->device.class = &thermal_class;
+	dev_set_name(&thermal_msg->device,"thermal_message");
+
+	result = device_register(&thermal_msg->device);
+	if (result) {
+		kfree(thermal_msg);
+		return result;
+	}
+
+	result = device_create_file(&thermal_msg->device,&dev_attr_sconfig);
+	printk("lct2018 sconfig result %d\n", result);
+	if (result)
+		goto unregister;
+
+	result = device_create_file(&thermal_msg->device,&dev_attr_temp_state);
+	printk("lct2018 state result %d\n", result);
+	if (result)
+		goto unregister;
+
+
+	return result;
+
+unregister:
+	device_unregister(&thermal_msg->device);
+	return result;
+}
+
+
+void thermal_message_device_unregister(void) {
+	//Do nothing
+}
+#endif //CONFIG_THERMAL_SWITCH
+
 static int __init thermal_init(void)
 {
 	int result;
@@ -2668,6 +2764,9 @@ static int __init thermal_init(void)
 	if (result)
 		pr_warn("Thermal: Can not register suspend notifier, return %d\n",
 			result);
+#ifdef CONFIG_THERMAL_SWITCH
+	result = thermal_message_device_register();
+#endif //CONFIG_THERMAL_SWITCH
 
 	return 0;
 
@@ -2688,6 +2787,9 @@ init_exit:
 
 static void thermal_exit(void)
 {
+#ifdef CONFIG_THERMAL_SWITCH
+	thermal_message_device_unregister();
+#endif //CONFIG_THERMAL_SWITCH
 	unregister_pm_notifier(&thermal_pm_nb);
 	of_thermal_destroy_zones();
 	destroy_workqueue(thermal_passive_wq);

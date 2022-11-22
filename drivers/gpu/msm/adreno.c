@@ -441,7 +441,6 @@ static void adreno_input_work(struct work_struct *work)
 
 	mutex_lock(&device->mutex);
 
-	device->flags |= KGSL_FLAG_WAKE_ON_TOUCH;
 
 	/*
 	 * Don't schedule adreno_start in a high priority workqueue, we are
@@ -479,8 +478,6 @@ static void adreno_input_event(struct input_handle *handle, unsigned int type,
 	 * here before
 	 */
 
-	if (device->flags & KGSL_FLAG_WAKE_ON_TOUCH)
-		return;
 
 	/*
 	 * If the device is in nap, kick the idle timer to make sure that we
@@ -494,7 +491,6 @@ static void adreno_input_event(struct input_handle *handle, unsigned int type,
 		 * keeping the device in nap without rendering
 		 */
 
-		device->flags |= KGSL_FLAG_WAKE_ON_TOUCH;
 
 		mod_timer(&device->idle_timer,
 			jiffies + device->pwrctrl.interval_timeout);
@@ -1172,20 +1168,20 @@ static int adreno_of_get_power(struct adreno_device *adreno_dev,
 	/* get pm-qos-active-latency, set it to default if not found */
 	if (of_property_read_u32(node, "qcom,pm-qos-active-latency",
 		&device->pwrctrl.pm_qos_active_latency))
-		device->pwrctrl.pm_qos_active_latency = 501;
+		device->pwrctrl.pm_qos_active_latency = 1000;
 
 	/* get pm-qos-cpu-mask-latency, set it to default if not found */
 	if (of_property_read_u32(node, "qcom,l2pc-cpu-mask-latency",
 		&device->pwrctrl.pm_qos_cpu_mask_latency))
-		device->pwrctrl.pm_qos_cpu_mask_latency = 501;
+		device->pwrctrl.pm_qos_cpu_mask_latency = 1000;
 
 	/* get pm-qos-wakeup-latency, set it to default if not found */
 	if (of_property_read_u32(node, "qcom,pm-qos-wakeup-latency",
 		&device->pwrctrl.pm_qos_wakeup_latency))
-		device->pwrctrl.pm_qos_wakeup_latency = 101;
+		device->pwrctrl.pm_qos_wakeup_latency = 100;
 
 	if (of_property_read_u32(node, "qcom,idle-timeout", &timeout))
-		timeout = 80;
+		timeout = 64;
 
 	device->pwrctrl.interval_timeout = msecs_to_jiffies(timeout);
 
@@ -3819,19 +3815,6 @@ static void adreno_gpu_model(struct kgsl_device *device, char *str,
 			 ADRENO_CHIPID_MAJOR(adreno_dev->chipid),
 			 ADRENO_CHIPID_MINOR(adreno_dev->chipid),
 			 ADRENO_CHIPID_PATCH(adreno_dev->chipid) + 1);
-}
-
-u32 adreno_get_ucode_version(const u32 *data)
-{
-	u32 version;
-
-	version = data[1];
-
-	if ((version & 0xf) != 0xa)
-		return version;
-
-	version &= ~0xfff;
-	return  version | ((data[3] & 0xfff000) >> 12);
 }
 
 static const struct kgsl_functable adreno_functable = {

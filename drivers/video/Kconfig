@@ -47,5 +47,4 @@ if FB || SGI_NEWPORT_CONSOLE
 
 endif
 
-
 endmenu

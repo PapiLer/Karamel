@@ -395,7 +395,7 @@ no_rx:
 
 static inline void msm_wait_for_xmitr(struct uart_port *port)
 {
-	u32 count = 500000;
+	unsigned int timeout = 500000;
 
 	while (!(msm_read(port, UART_SR) & UART_SR_TX_EMPTY)) {
 		if (msm_read(port, UART_ISR) & UART_ISR_TX_READY)
@@ -406,7 +406,7 @@ static inline void msm_wait_for_xmitr(struct uart_port *port)
 		 * TX ready, have a 500ms timeout to avoid stuck here
 		 * and only miss some log to uart.
 		 */
-		if (count-- == 0) {
+		if (!timeout--) {
 			msm_write(port, UART_CR_CMD_RESET_TX, UART_CR);
 			printk_deferred("uart may lost data, resetting TX!\n");
 			break;
@@ -628,6 +628,9 @@ static void msm_start_rx_dma(struct msm_port *msm_port)
 	struct uart_port *uart = &msm_port->uart;
 	u32 val;
 	int ret;
+
+	if (IS_ENABLED(CONFIG_CONSOLE_POLL))
+		return;
 
 	if (!dma->chan)
 		return;

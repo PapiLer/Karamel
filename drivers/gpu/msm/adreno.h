@@ -284,8 +284,8 @@ enum adreno_preempt_states {
 /**
  * struct adreno_preemption
  * @state: The current state of preemption
- * @scratch: Memory descriptor for the memory where the GPU writes the
- * current ctxt record address and preemption counters on switch
+ * @counters: Memory descriptor for the memory where the GPU writes the
+ * preemption counters on switch
  * @timer: A timer to make sure preemption doesn't stall
  * @work: A work struct for the preemption worker (for 5XX)
  * @token_submit: Indicates if a preempt token has been submitted in
@@ -298,7 +298,7 @@ enum adreno_preempt_states {
  */
 struct adreno_preemption {
 	atomic_t state;
-	struct kgsl_memdesc scratch;
+	struct kgsl_memdesc counters;
 	struct timer_list timer;
 	struct work_struct work;
 	bool token_submit;
@@ -1102,8 +1102,6 @@ extern unsigned int *adreno_ft_regs;
 extern unsigned int adreno_ft_regs_num;
 extern unsigned int *adreno_ft_regs_val;
 
-extern struct adreno_gpudev adreno_a3xx_gpudev;
-extern struct adreno_gpudev adreno_a4xx_gpudev;
 extern struct adreno_gpudev adreno_a5xx_gpudev;
 extern struct adreno_gpudev adreno_a6xx_gpudev;
 
@@ -1192,7 +1190,6 @@ void adreno_cx_misc_regrmw(struct adreno_device *adreno_dev,
 		unsigned int offsetwords,
 		unsigned int mask, unsigned int bits);
 
-u32 adreno_get_ucode_version(const u32 *data);
 
 #define ADRENO_TARGET(_name, _id) \
 static inline int adreno_is_##_name(struct adreno_device *adreno_dev) \
@@ -1897,12 +1894,14 @@ static inline unsigned int counter_delta(struct kgsl_device *device,
 			 * Since KGSL got abnormal value from the counter,
 			 * We will drop the value from being accumulated.
 			 */
+#if 0
 			KGSL_DRV_ERR_RATELIMIT(device,
 				"Abnormal value:0x%llx (0x%llx) from perf counter : 0x%x\n",
 				val | ((uint64_t)perfctr_pwr_hi << 32),
 				*counter |
 					((uint64_t)prev_perfctr_pwr_hi << 32),
 				reg);
+#endif
 		}
 	}
 

@@ -510,7 +510,7 @@ static struct socket *sockfd_lookup_light(int fd, int *err, int *fput_needed)
 	if (f.file) {
 		sock = sock_from_file(f.file, err);
 		if (likely(sock)) {
-			*fput_needed = f.flags;
+			*fput_needed = f.flags & FDPUT_FPUT;
 			return sock;
 		}
 		fdput(f);
@@ -3387,6 +3387,7 @@ int sockev_unregister_notify(struct notifier_block *nb)
 	return blocking_notifier_chain_unregister(&sockev_notifier_list, nb);
 }
 EXPORT_SYMBOL(sockev_unregister_notify);
+
 
 /* This routine returns the IP overhead imposed by a socket i.e.
  * the length of the underlying IP header, depending on whether

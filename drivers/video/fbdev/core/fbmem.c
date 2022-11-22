@@ -2,6 +2,7 @@
  *  linux/drivers/video/fbmem.c
  *
  *  Copyright (C) 1994 Martin Schaller
+ *  Copyright (C) 2020 XiaoMi, Inc.
  *
  *	2001 - Documented with DocBook
  *	- Brad Douglas <brad@neruo.com>
@@ -32,6 +33,7 @@
 #include <linux/device.h>
 #include <linux/efi.h>
 #include <linux/fb.h>
+#include <linux/overflow.h>
 
 #include <asm/fb.h>
 
@@ -981,6 +983,7 @@ fb_set_var(struct fb_info *info, struct fb_var_screeninfo *var)
 	if ((var->activate & FB_ACTIVATE_FORCE) ||
 	    memcmp(&info->var, var, sizeof(struct fb_var_screeninfo))) {
 		u32 activate = var->activate;
+		u32 unused;
 
 		/* When using FOURCC mode, make sure the red, green, blue and
 		 * transp fields are set to 0.
@@ -1000,6 +1003,15 @@ fb_set_var(struct fb_info *info, struct fb_var_screeninfo *var)
 			*var = info->var;
 			goto done;
 		}
+
+		/* bitfill_aligned() assumes that it's at least 8x8 */
+		if (var->xres < 8 || var->yres < 8)
+			return -EINVAL;
+
+		/* Too huge resolution causes multiplication overflow. */
+		if (check_mul_overflow(var->xres, var->yres, &unused) ||
+		    check_mul_overflow(var->xres_virtual, var->yres_virtual, &unused))
+			return -EINVAL;
 
 		ret = info->fbops->fb_check_var(var, info);
 
@@ -1068,6 +1080,14 @@ fb_blank(struct fb_info *info, int blank)
  	if (blank > FB_BLANK_POWERDOWN)
  		blank = FB_BLANK_POWERDOWN;
 
+	if (info->blank == blank) {
+		if (info->fbops->fb_blank) {
+			//printk("fb_mem 01\n");
+			ret=info->fbops->fb_blank(blank,info);
+	   }
+		//printk("fb_mem 02 ret\n");
+		return ret;	
+	}
 	event.info = info;
 	event.data = &blank;
 
@@ -1086,7 +1106,9 @@ fb_blank(struct fb_info *info, int blank)
 		if (!early_ret)
 			fb_notifier_call_chain(FB_R_EARLY_EVENT_BLANK, &event);
 	}
-
+	if (!ret) {
+		info->blank=blank;
+	}
  	return ret;
 }
 EXPORT_SYMBOL(fb_blank);
@@ -1651,6 +1673,7 @@ static int do_register_framebuffer(struct fb_info *fb_info)
 		if (!registered_fb[i])
 			break;
 	fb_info->node = i;
+	fb_info->blank= -1;
 	atomic_set(&fb_info->count, 1);
 	mutex_init(&fb_info->lock);
 	mutex_init(&fb_info->mm_lock);

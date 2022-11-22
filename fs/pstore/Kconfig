@@ -62,7 +62,6 @@ config PSTORE_FTRACE
 	bool "Persistent function tracer"
 	depends on PSTORE
 	depends on FUNCTION_TRACER
-	depends on DEBUG_FS
 	help
 	  With this option kernel traces function calls into a persistent
 	  ram buffer that can be decoded and dumped after reboot through
@@ -87,3 +86,11 @@ config PSTORE_RAM
 	  "ramoops.ko".
 
 	  For more information, see Documentation/ramoops.txt.
+
+config PSTORE_LAST_KMSG
+	bool "export /proc/last_kmsg"
+	default y
+	depends on PSTORE
+	help
+	  When the option is enabled, pstore will export a proc filesystem
+	  interface /proc/last_kmsg.

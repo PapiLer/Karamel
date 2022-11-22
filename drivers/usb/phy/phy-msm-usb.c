@@ -52,6 +52,10 @@
 
 #include <linux/msm-bus.h>
 
+
+
+//add end
+
 /**
  * Requested USB votes for BUS bandwidth
  *
@@ -116,9 +120,7 @@ enum msm_usb_phy_type {
 	QUSB_ULPI_PHY,
 };
 
-#define IDEV_CHG_MAX	1500
 #define IUNIT		100
-#define IDEV_HVDCP_CHG_MAX	1800
 
 /**
  * Used different VDDCX voltage values
@@ -3011,12 +3013,19 @@ static void msm_otg_set_vbus_state(int online)
 
 	if (online) {
 		pr_debug("EXTCON: BSV set\n");
+
+
+	//add end  
 		msm_otg_dbg_log_event(&motg->phy, "EXTCON: BSV SET",
 				motg->inputs, 0);
 		if (test_and_set_bit(B_SESS_VLD, &motg->inputs))
 			return;
 	} else {
 		pr_debug("EXTCON: BSV clear\n");
+
+
+
+	//add end  
 		msm_otg_dbg_log_event(&motg->phy, "EXTCON: BSV CLEAR",
 				motg->inputs, 0);
 		if (!test_and_clear_bit(B_SESS_VLD, &motg->inputs))

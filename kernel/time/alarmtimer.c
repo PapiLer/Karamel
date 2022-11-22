@@ -278,10 +278,8 @@ static int alarmtimer_suspend(struct device *dev)
 	if (min.tv64 == 0)
 		return 0;
 
-	if (ktime_to_ns(min) < 2 * NSEC_PER_SEC) {
-		__pm_wakeup_event(ws, 2 * MSEC_PER_SEC);
-		return -EBUSY;
-	}
+	if (ktime_to_ns(min) < NSEC_PER_SEC / 2)
+		__pm_wakeup_event(ws, MSEC_PER_SEC / 2);
 
 	/* Setup an rtc timer to fire that far in the future */
 	rtc_timer_cancel(rtc, &rtctimer);
@@ -838,10 +836,10 @@ static int alarm_timer_nsleep(const clockid_t which_clock, int flags,
 	}
 
 	restart = &current->restart_block;
-	restart->fn = alarm_timer_nsleep_restart;
 	restart->nanosleep.clockid = type;
 	restart->nanosleep.expires = exp.tv64;
 	restart->nanosleep.rmtp = rmtp;
+	set_restart_fn(restart, alarm_timer_nsleep_restart);
 	ret = -ERESTART_RESTARTBLOCK;
 
 out:

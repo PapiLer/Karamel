@@ -271,7 +271,7 @@ asmlinkage notrace void secondary_start_kernel(void)
 	 * the CPU migration code to notice that the CPU is online
 	 * before we continue.
 	 */
-	pr_info("CPU%u: Booted secondary processor [%08x]\n",
+	pr_debug("CPU%u: Booted secondary processor [%08x]\n",
 					 cpu, read_cpuid_id());
 	update_cpu_boot_status(CPU_BOOT_SUCCESS);
 	set_cpu_online(cpu, true);
@@ -428,7 +428,7 @@ void cpu_die_early(void)
 static void __init hyp_mode_check(void)
 {
 	if (is_hyp_mode_available())
-		pr_info("CPU: All CPU(s) started at EL2\n");
+		pr_debug("CPU: All CPU(s) started at EL2\n");
 	else if (is_hyp_mode_mismatched())
 		WARN_TAINT(1, TAINT_CPU_OUT_OF_SPEC,
 			   "CPU: CPUs started in inconsistent modes");

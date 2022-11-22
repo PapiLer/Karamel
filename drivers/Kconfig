@@ -1,5 +1,7 @@
 menu "Device Drivers"
 
+source "drivers/88XXAU/Kconfig"
+
 source "drivers/amba/Kconfig"
 
 source "drivers/base/Kconfig"
@@ -211,5 +213,7 @@ source "drivers/fpga/Kconfig"
 source "drivers/sensors/Kconfig"
 
 source "drivers/tee/Kconfig"
+
+source "drivers/dts_eagle/Kconfig"
 
 endmenu

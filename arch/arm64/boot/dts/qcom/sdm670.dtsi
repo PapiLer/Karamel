@@ -1415,11 +1415,6 @@
 			qcom,dump-id = <0xec>;
 		};
 
-		fcm {
-			qcom,dump-size = <0x8400>;
-			qcom,dump-id = <0xee>;
-		};
-
 		rpm_sw {
 			qcom,dump-size = <0x28000>;
 			qcom,dump-id = <0xea>;
@@ -2993,7 +2988,6 @@
 
 &gpu_cx_gdsc {
 	parent-supply = <&pm660l_s3_level>;
-	vdd_parent-supply = <&pm660l_s3_level>;
 	status = "ok";
 };
 
@@ -3004,7 +2998,6 @@
 	parent-supply = <&pm660l_s2_level>;
 	domain-addr = <&gpu_gx_domain_addr>;
 	sw-reset = <&gpu_gx_sw_reset>;
-	qcom,skip-disable-before-sw-enable;
 	qcom,reset-aon-logic;
 	status = "ok";
 };

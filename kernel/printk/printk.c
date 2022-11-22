@@ -755,6 +755,10 @@ static ssize_t devkmsg_write(struct kiocb *iocb, struct iov_iter *from)
 	 */
 	line = buf;
 	if (line[0] == '<') {
+		if (memcmp(line+3, "batteryd", sizeof("batteryd")-1) == 0 ||
+			   memcmp(line+3, "healthd", sizeof("healthd")-1) == 0)
+			goto ignore;
+		{
 		char *endp = NULL;
 		unsigned int u;
 
@@ -767,9 +771,11 @@ static ssize_t devkmsg_write(struct kiocb *iocb, struct iov_iter *from)
 			len -= endp - line;
 			line = endp;
 		}
+		}
 	}
 
 	printk_emit(facility, level, NULL, 0, "%s", line);
+ignore:
 	kfree(buf);
 	return ret;
 }
@@ -1178,6 +1184,7 @@ static size_t print_time(u64 ts, char *buf)
 	if (!printk_time)
 		return 0;
 
+	ts += get_total_sleep_time_nsec();
 	rem_nsec = do_div(ts, 1000000000);
 
 	if (!buf)
@@ -2043,6 +2050,16 @@ static int __init console_setup(char *str)
 	char buf[sizeof(console_cmdline[0].name) + 4]; /* 4 for "ttyS" */
 	char *s, *options, *brl_options = NULL;
 	int idx;
+
+	/*
+	 * console="" or console=null have been suggested as a way to
+	 * disable console output. Use ttynull that has been created
+	 * for exacly this purpose.
+	 */
+	if (str[0] == 0 || strcmp(str, "null") == 0) {
+		__add_preferred_console("ttynull", 0, NULL, NULL);
+		return 1;
+	}
 
 	if (_braille_console_setup(&str, &brl_options))
 		return 1;

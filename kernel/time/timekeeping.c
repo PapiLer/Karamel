@@ -988,9 +988,8 @@ static int scale64_check_overflow(u64 mult, u64 div, u64 *base)
 	    ((int)sizeof(u64)*8 - fls64(mult) < fls64(rem)))
 		return -EOVERFLOW;
 	tmp *= mult;
-	rem *= mult;
 
-	do_div(rem, div);
+	rem = div64_u64(rem * mult, div);
 	*base = tmp + rem;
 	return 0;
 }
@@ -1237,8 +1236,7 @@ int do_settimeofday64(const struct timespec64 *ts)
 	timekeeping_forward_now(tk);
 
 	xt = tk_xtime(tk);
-	ts_delta.tv_sec = ts->tv_sec - xt.tv_sec;
-	ts_delta.tv_nsec = ts->tv_nsec - xt.tv_nsec;
+	ts_delta = timespec64_sub(*ts, xt);
 
 	if (timespec64_compare(&tk->wall_to_monotonic, &ts_delta) > 0) {
 		ret = -EINVAL;
@@ -2405,4 +2403,14 @@ void xtime_update(unsigned long ticks)
 	do_timer(ticks);
 	write_sequnlock(&jiffies_lock);
 	update_wall_time();
+}
+
+/**
+ * get_total_sleep_time_nsec() - returns total sleep time in nanoseconds
+ */
+s64 get_total_sleep_time_nsec(void)
+{
+	struct timekeeper *tk = &tk_core.timekeeper;
+
+	return ktime_to_ns(tk->offs_boot);
 }
