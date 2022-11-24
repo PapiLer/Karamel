@@ -20,7 +20,7 @@ git clone https://github.com/Risti699/AnyKernel3.git -b master
 
 #Download Clang
 if [ ! -d clang ]; then
-    git clone https://gitlab.com/AnggaR96s/clang-gengkapak -b main --depth=1
+    git clone https://github.com/Risti699/clang-gengkapak -b 13 --depth=1
 #    git clone https://github.com/arter97/arm64-gcc.git --depth=1
 #    git clone https://github.com/arter97/arm32-gcc.git --depth=1
 #    git clone https://github.com/MumetNgoding/proton-clang.git --depth=1

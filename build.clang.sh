@@ -62,31 +62,5 @@ cd $ZIP_DIR
 cp $KERN_IMG zImage
 make normal &>/dev/null
 echo "Flashable zip generated under $ZIP_DIR."
-echo "Please Wait ... Pushing ZIP Kernel to Telegram ..."
-
-# Push to Telegram
-END=$(date -u +%s)
-DURATION=$(( END - START ))
-
-cd $KERNEL_DIR/AnyKernel3
-mv "$(echo JFla-Karamel*.zip)" "$KERNEL_DIR"
-cd $KERNEL_DIR
-
-# Get Telegram Script
-wget https://raw.githubusercontent.com/Risti699/Magic-Script/main/telegram
-chmod +x telegram
-
-# Add New Variable
-KBUILD_BUILD_TIMESTAMP=$(date)
-export KBUILD_BUILD_TIMESTAMP
-CPU=$(lscpu | sed -nr '/Model name/ s/.*:\s*(.*) @ .*/\1/p')
-HEAD_COMMIT="$(git rev-parse HEAD)"
-GITHUB_URL="https://github.com/Risti699/Kernul-onclite/tree/JFla-Karamel/commits/"
-COMMIT=$(git log --pretty=format:'%h: %s' -1)
-
-# Get Script Source
-./telegram -f "$(echo -e JFla-Karamel*.zip)" "$(echo ___  [*BUILDING*] ___  ️$'\n' HEAD MESSAGE:$'\n' $COMMIT $'\n' COMMIT URL: $'\n' ${GITHUB_URL}${HEAD_COMMIT} $'\n' DATE: $'\n' $KBUILD_BUILD_TIMESTAMP $'\n' BUILD USING: $'\n' $CPU $'\n' CC AUTHOR: $'\n' @kaguyaasama $'\n' DURATION: $'\n' $DURATION Seconds $'\n' ___  [*COMPLETE*] ___  )"
-rm "$(echo JFla-Karamel*.zip)"
-rm telegram
-echo -e "\n(!) Done Push to Telegram"
+cd ..
 # Build end
