@@ -81,7 +81,7 @@ KBUILD_BUILD_TIMESTAMP=$(date)
 export KBUILD_BUILD_TIMESTAMP
 CPU=$(lscpu | sed -nr '/Model name/ s/.*:\s*(.*) @ .*/\1/p')
 HEAD_COMMIT="$(git rev-parse HEAD)"
-GITHUB_URL="https://github.com/Risti699/Kernul-onclite/tree/JFla-Karamel/commits/"
+GITHUB_URL="https://github.com/Risti699/Karamel/tree/JFla-Karamel/commits/"
 COMMIT=$(git log --pretty=format:'%h: %s' -1)
 
 # Get Script Source
